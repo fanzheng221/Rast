@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest"
+    "test": "vitest run"
   },
   "peerDependencies": {
     "vite": ">=3.0.0",
@@ -32,7 +32,10 @@
       "optional": true
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "@rast/bindings": "workspace:*",
+    "unplugin": "^1.10.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "tsup": "^8.3.5",

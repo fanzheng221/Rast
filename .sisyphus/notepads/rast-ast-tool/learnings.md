@@ -94,3 +94,27 @@ pub struct AnalysisResult {
 
 ### 关键配置
 - `napi-rs` 项目必须包含 `build.rs` 文件，并在其中调用 `napi_build::setup()`，否则在 macOS 等平台上会遇到链接错误。
+
+## MCP Server Implementation
+- Successfully implemented the MCP server using `@modelcontextprotocol/sdk`.
+- Registered the `analyze_ast` tool using `server.setRequestHandler(ListToolsRequestSchema, ...)` and `server.setRequestHandler(CallToolRequestSchema, ...)`.
+- Integrated `@rast/bindings` by adding it as a workspace dependency and calling `analyzeAst(source)` within the tool handler.
+- Verified that the stdio transport works correctly by sending JSON-RPC requests via stdin and receiving responses via stdout.
+
+## [2026-02-25] Task 4: 实现 Unplugin Wrapper
+
+### 完成项
+- ✅ 在 `packages/unplugin/package.json` 中添加了 `@rast/bindings` 和 `unplugin` 依赖
+- ✅ 实现了 `packages/unplugin/src/index.ts` 中的 `transform` 钩子，集成了 `@rast/bindings` 的 `analyzeAst` 函数
+- ✅ 支持 `injectIssues` 和 `logIssues` 配置选项，可以控制是否在代码中注入注释或在控制台打印警告
+- ✅ 创建了 `packages/unplugin/vitest.config.ts` 配置
+- ✅ 编写了 `packages/unplugin/test/basic.test.ts` 测试用例，验证了 `transform` 钩子的行为
+- ✅ 成功运行了 `pnpm --filter unplugin run build` 和 `pnpm --filter unplugin run test`
+
+### 遇到的问题
+1. **Vitest 默认行为**：`vitest` 默认以 watch 模式运行，导致 CI/自动化脚本挂起。通过将 `package.json` 中的 `test` 脚本修改为 `vitest run` 解决。
+2. **TypeScript 类型**：在测试文件中使用 `Function` 类型和 `any` 类型会导致 Biome linting 警告。通过使用更精确的类型 `(code: string, id: string) => { code: string; map: unknown } | undefined` 解决。
+
+### 关键配置
+- `unplugin` 的 `transform` 钩子可以返回 `{ code, map }` 对象，如果不需要修改代码，可以返回原始 `code` 和 `map: null`。
+- 通过 `JSON.parse(analyzeAst(code))` 解析 Rust 引擎返回的 JSON 字符串，获取 `issues` 和 `exports` 信息。

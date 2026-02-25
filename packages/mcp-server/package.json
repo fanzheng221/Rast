@@ -17,7 +17,8 @@
     "test": "echo 'MCP server tests coming soon'"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4"
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@rast/bindings": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
