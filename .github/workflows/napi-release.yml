@@ -1,0 +1,28 @@
+name: NAPI Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: pnpm install
+      - name: Build all targets
+        run: pnpm --filter bindings run build
+      - name: Upload to npm
+        run: pnpm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

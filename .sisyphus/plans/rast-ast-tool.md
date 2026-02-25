@@ -63,6 +63,6 @@ Build a Rust-powered AST analysis tool natively integrated as a universal bundle
 - [x] Task 1 Completed (Rust 环境需要用户手动配置)
 - [x] Task 2 Completed (使用 regex-based 解析 MVP)
 - [x] Task 3 Completed (NAPI Bindings 成功编译并通过测试)
-- [ ] Task 4 Completed
-- [ ] Task 5 Completed
-- [ ] Task 6 Completed
+- [x] Task 4 Completed (Unplugin 成功集成 NAPI bindings 并通过测试)
+- [x] Task 5 Completed (MCP Server stdio 接口正常工作)
+- [x] Task 6 Completed (E2E 测试通过，CI 配置完成)

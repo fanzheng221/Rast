@@ -118,3 +118,14 @@ pub struct AnalysisResult {
 ### 关键配置
 - `unplugin` 的 `transform` 钩子可以返回 `{ code, map }` 对象，如果不需要修改代码，可以返回原始 `code` 和 `map: null`。
 - 通过 `JSON.parse(analyzeAst(code))` 解析 Rust 引擎返回的 JSON 字符串，获取 `issues` 和 `exports` 信息。
+
+## E2E Integration & CI Setup (Task 6)
+- **E2E Testing**: Created a comprehensive E2E test script (`scripts/e2e-test.js`) that verifies the entire toolchain:
+  - Direct bindings call (`@rast/bindings`)
+  - Unplugin transform (`@rast/unplugin`)
+  - MCP server communication (`@rast/mcp-server`)
+- **CI Workflows**: Added GitHub Actions workflows for:
+  - `ci.yml`: Standard CI for formatting, linting, building, and running E2E tests.
+  - `napi-rs.yml`: Cross-platform build matrix for NAPI binaries (macOS, Linux, Windows).
+  - `napi-release.yml`: Automated release workflow for publishing to npm.
+- **Testing Strategy**: The E2E test script uses `child_process.spawn` to test the MCP server via stdio, simulating a real MCP client. It also directly tests the Unplugin's `transform` hook to ensure issues are correctly injected as comments.
