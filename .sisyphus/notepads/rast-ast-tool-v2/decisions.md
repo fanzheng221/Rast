@@ -6,3 +6,8 @@
 ## 2026-02-25 (Task 2)
 - `ProjectGraph` 放在 `ast_engine::lib` 内与 `analyze_ast_internal` 共域，避免暴露额外解析 API，同时保持 `analyze_ast` 对外接口不变。
 - `find_symbol` 以 `symbols` 为主、`exports` 补充，避免 interface/type/class 在同文件被重复返回，同时保留导出变量类符号的可检索性。
+
+## 2026-02-25 (Task 3)
+- bindings 层新增 `#[napi] pub struct ProjectGraph` 包装器，不直接对外暴露 `ast_engine::ProjectGraph`，将并发与缓存策略封装在 Rust 内部。
+- `initialize_graph(mode)` 保留 `mode` 参数用于未来扩展，当前版本不参与分支逻辑，仅用于 API 前向兼容。
+- `analyze_dependencies(paths)` 返回 `Vec<(String, Vec<DependencyInfo>)>` 的 JSON 字符串，确保可一次查询多文件且保留每个输入路径的上下文。
