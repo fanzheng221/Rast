@@ -2,7 +2,12 @@
 //!
 //! Core AST analysis engine for JavaScript/TypeScript parsing (oxc-based).
 
-use std::path::Path;
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap},
+    hash::{Hash, Hasher},
+    path::{Path, PathBuf},
+    sync::{Arc, RwLock},
+};
 
 use oxc::{
     allocator::Allocator,
@@ -102,6 +107,154 @@ pub struct AnalysisResult {
     /// List of linting issues found
     pub issues: Vec<LintIssue>,
     pub file_structure: FileStructure,
+}
+
+#[derive(Debug, Default)]
+struct ProjectGraphState {
+    files: HashMap<String, FileStructure>,
+    dependency_graph: HashMap<String, Vec<String>>,
+    parse_cache: HashMap<String, u64>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ProjectGraph {
+    inner: Arc<RwLock<ProjectGraphState>>,
+}
+
+impl ProjectGraph {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn add_file(&self, path: &str, code: &str) -> Result<(), String> {
+        let normalized_path = normalize_project_path(path);
+        let code_hash = hash_code(code);
+
+        {
+            let state = self
+                .inner
+                .read()
+                .map_err(|err| format!("Failed to acquire graph read lock: {err}"))?;
+            if state
+                .parse_cache
+                .get(&normalized_path)
+                .is_some_and(|cached| *cached == code_hash)
+            {
+                return Ok(());
+            }
+        }
+
+        let result = analyze_ast_internal(code);
+        let dependencies = result
+            .file_structure
+            .imports
+            .iter()
+            .filter_map(|dep| {
+                resolve_import_candidates(&normalized_path, &dep.source)
+                    .into_iter()
+                    .next()
+            })
+            .collect::<Vec<_>>();
+
+        let mut state = self
+            .inner
+            .write()
+            .map_err(|err| format!("Failed to acquire graph write lock: {err}"))?;
+        state
+            .files
+            .insert(normalized_path.clone(), result.file_structure);
+        state
+            .dependency_graph
+            .insert(normalized_path.clone(), dependencies);
+        state.parse_cache.insert(normalized_path, code_hash);
+        Ok(())
+    }
+
+    pub fn get_file_structure(&self, path: &str) -> Option<FileStructure> {
+        let normalized_path = normalize_project_path(path);
+        let state = self.inner.read().ok()?;
+        state.files.get(&normalized_path).cloned()
+    }
+
+    pub fn get_all_files(&self) -> Vec<String> {
+        let state = self.inner.read().ok();
+        let mut files = state
+            .map(|graph| graph.files.keys().cloned().collect::<Vec<_>>())
+            .unwrap_or_default();
+        files.sort();
+        files
+    }
+
+    pub fn resolve_dependencies(&self, path: &str) -> Vec<DependencyInfo> {
+        let normalized_path = normalize_project_path(path);
+        let state = match self.inner.read() {
+            Ok(state) => state,
+            Err(_) => return Vec::new(),
+        };
+
+        let Some(file_structure) = state.files.get(&normalized_path) else {
+            return Vec::new();
+        };
+
+        file_structure
+            .imports
+            .iter()
+            .filter_map(|dep| {
+                let resolved = resolve_import_candidates(&normalized_path, &dep.source)
+                    .into_iter()
+                    .find(|candidate| state.files.contains_key(candidate))?;
+                if state.files.contains_key(&resolved) {
+                    let mut info = dep.clone();
+                    info.source = resolved;
+                    Some(info)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    pub fn find_symbol(&self, name: &str) -> Vec<SymbolSignature> {
+        let state = match self.inner.read() {
+            Ok(state) => state,
+            Err(_) => return Vec::new(),
+        };
+
+        let mut symbols = Vec::new();
+        for structure in state.files.values() {
+            let mut local = structure
+                .symbols
+                .iter()
+                .filter(|symbol| symbol.name == name)
+                .cloned()
+                .collect::<Vec<_>>();
+
+            for export in structure
+                .exports
+                .iter()
+                .filter(|symbol| symbol.name == name)
+            {
+                if !local
+                    .iter()
+                    .any(|symbol| symbol.name == export.name && symbol.kind == export.kind)
+                {
+                    local.push(export.clone());
+                }
+            }
+
+            symbols.extend(local);
+        }
+
+        symbols
+    }
+
+    pub fn clear(&self) {
+        if let Ok(mut state) = self.inner.write() {
+            state.files.clear();
+            state.dependency_graph.clear();
+            state.parse_cache.clear();
+        }
+    }
 }
 
 /// Analyzes JavaScript/TypeScript source code and extracts AST information
@@ -685,6 +838,53 @@ fn language_name(source_type: SourceType) -> String {
     }
 }
 
+fn hash_code(code: &str) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    code.hash(&mut hasher);
+    hasher.finish()
+}
+
+fn normalize_project_path(path: &str) -> String {
+    normalize_path_buf(PathBuf::from(path))
+}
+
+fn normalize_path_buf(path: PathBuf) -> String {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                normalized.pop();
+            }
+            other => normalized.push(other),
+        }
+    }
+    normalized.to_string_lossy().replace('\\', "/")
+}
+
+fn resolve_import_candidates(file_path: &str, import_source: &str) -> Vec<String> {
+    if !import_source.starts_with('.') {
+        return Vec::new();
+    }
+
+    let parent = Path::new(file_path)
+        .parent()
+        .unwrap_or_else(|| Path::new(""));
+    let candidate = normalize_path_buf(parent.join(import_source));
+    [
+        candidate.clone(),
+        format!("{candidate}.ts"),
+        format!("{candidate}.tsx"),
+        format!("{candidate}.js"),
+        format!("{candidate}.jsx"),
+        format!("{candidate}/index.ts"),
+        format!("{candidate}/index.tsx"),
+        format!("{candidate}/index.js"),
+        format!("{candidate}/index.jsx"),
+    ]
+    .to_vec()
+}
+
 fn compute_line_starts(source: &str) -> Vec<usize> {
     let mut starts = vec![0usize];
     for (index, byte) in source.as_bytes().iter().enumerate() {
@@ -814,5 +1014,85 @@ export function buildName(user: User): string {
             .exports
             .iter()
             .any(|export| export.name == "buildName" && export.kind == "function"));
+    }
+
+    #[test]
+    fn test_project_graph_add_and_query_files() {
+        let graph = ProjectGraph::new();
+        let utils = r#"export function helper(): string { return \"ok\"; }"#;
+        let app = r#"
+import { helper } from "./utils";
+export function run() {
+  return helper();
+}
+"#;
+
+        graph.add_file("src/utils.ts", utils).unwrap();
+        graph.add_file("src/app.ts", app).unwrap();
+
+        let files = graph.get_all_files();
+        assert_eq!(
+            files,
+            vec!["src/app.ts".to_string(), "src/utils.ts".to_string()]
+        );
+        assert!(graph.get_file_structure("src/app.ts").is_some());
+        assert!(graph.get_file_structure("src/missing.ts").is_none());
+    }
+
+    #[test]
+    fn test_project_graph_resolve_dependencies_cross_file() {
+        let graph = ProjectGraph::new();
+        graph
+            .add_file("src/utils.ts", "export const helper = () => 1;")
+            .unwrap();
+        graph
+            .add_file(
+                "src/app.ts",
+                "import { helper } from './utils'; export const run = () => helper();",
+            )
+            .unwrap();
+
+        let deps = graph.resolve_dependencies("src/app.ts");
+        assert_eq!(deps.len(), 1);
+        assert_eq!(deps[0].source, "src/utils.ts");
+        assert_eq!(deps[0].kind, "import");
+    }
+
+    #[test]
+    fn test_project_graph_find_symbol_and_clear() {
+        let graph = ProjectGraph::new();
+        graph
+            .add_file(
+                "src/a.ts",
+                "export interface User { id: string } export const userName = 'A';",
+            )
+            .unwrap();
+        graph
+            .add_file("src/b.ts", "export const userName = 'B';")
+            .unwrap();
+
+        let user_name_symbols = graph.find_symbol("userName");
+        assert_eq!(user_name_symbols.len(), 2);
+
+        let user_symbols = graph.find_symbol("User");
+        assert_eq!(user_symbols.len(), 1);
+        assert_eq!(user_symbols[0].kind, "interface");
+
+        graph.clear();
+        assert!(graph.get_all_files().is_empty());
+        assert!(graph.find_symbol("userName").is_empty());
+    }
+
+    #[test]
+    fn test_project_graph_repeated_add_uses_cache() {
+        let graph = ProjectGraph::new();
+        let code = "export const cached = 1;";
+        graph.add_file("src/cache.ts", code).unwrap();
+        graph.add_file("src/cache.ts", code).unwrap();
+
+        let files = graph.get_all_files();
+        assert_eq!(files, vec!["src/cache.ts".to_string()]);
+        let found = graph.find_symbol("cached");
+        assert_eq!(found.len(), 1);
     }
 }
