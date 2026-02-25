@@ -22,3 +22,7 @@
 - `CallToolRequestSchema` 处理统一委托到 `callTool(name, args)`，把参数校验与错误消息集中在一个入口，避免 handler 分支重复。
 - 不引入 `@rast/unplugin` 依赖，直接在 MCP server 使用 `@rast/bindings` 初始化图实例，降低包间耦合并满足有状态绑定接入要求。
 - `src/index.ts` 增加 CLI 入口守卫，仅在直接执行脚本时启动 `main()`，允许测试安全导入 `callTool/tools`。
+
+## 2026-02-25 (Task 6)
+- Test 4 采用“双层验证”策略：模块内 `callTool` 做有状态图查询正确性验证，stdio `Client` 做 MCP 协议链路验证；以避免仅测传输或仅测函数导致覆盖缺口。
+- CI 层不额外改 workflow 文件：沿用 `ci.yml` 中 `pnpm test:e2e`，通过新增 E2E 用例自然纳入 stateful NAPI 生命周期回归。

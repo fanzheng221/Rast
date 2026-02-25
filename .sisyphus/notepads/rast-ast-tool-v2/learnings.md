@@ -23,3 +23,8 @@
 - 对 `get_file_structure` 的空结果返回文本 `null`、对 `get_symbol_details` 返回 `JSON.stringify(array)`，可保证 MCP 响应始终为稳定的文本 JSON 片段。
 - 用官方 `@modelcontextprotocol/sdk` 的 `Client + StdioClientTransport` 做 QA，比手写 `Content-Length` 报文更稳定，且能覆盖初始化握手流程。
 - 为避免测试导入时意外启动 stdio 服务，ESM 入口应加 `import.meta.url === pathToFileURL(process.argv[1]).href` 守卫再执行 `main()`。
+
+## 2026-02-25 (Task 6)
+- E2E 中测试 Codebase Oracle 最稳妥的方式是“先导入 MCP 模块并预热 `projectGraph.add_file`，再调用 `callTool` 验证结构化结果”；这可直接覆盖有状态 NAPI 生命周期。
+- `get_symbol_details` 的返回值是“JSON 字符串数组”，每个元素仍需二次 `JSON.parse` 才能拿到 symbol 对象字段。
+- 对 MCP 通信层建议保留 `Client + StdioClientTransport` 冒烟测试：`listTools` 校验工具注册，`callTool` 校验 stdio 握手与工具调用链路。
