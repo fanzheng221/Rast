@@ -1,0 +1,43 @@
+{
+  "name": "@rast/unplugin",
+  "version": "0.1.0",
+  "description": "Universal bundler plugin for Rast AST analysis",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest"
+  },
+  "peerDependencies": {
+    "vite": ">=3.0.0",
+    "webpack": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  }
+}

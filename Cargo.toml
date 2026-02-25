@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "crates/ast_engine",
+    "packages/bindings",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Rast Contributors"]
+license = "MIT"
+
+[workspace.dependencies]
+oxc = { version = "0.38", features = ["full"] }
+ast_engine = { path = "./crates/ast_engine" }

@@ -1,0 +1,23 @@
+[package]
+name = "rast-bindings"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ast_engine.workspace = true
+napi = { version = "2", default-features = false, features = ["napi4"] }
+napi-derive = "2"
+serde = "1.0"
+serde_json = "1.0"
+
+[build-dependencies]
+napi-build = "2"
+
+[package.metadata.deploy]
+# The NAPI crate needs to be compiled with special environment variables to work with Node.js.
+# The napi-build crate provides this functionality.

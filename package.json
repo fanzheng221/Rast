@@ -1,0 +1,27 @@
+{
+  "name": "rast",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Rust-powered AST analysis tool with MCP support",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm build && pnpm test",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "ast",
+    "rust",
+    "mcp",
+    "vite",
+    "webpack",
+    "unplugin"
+  ],
+  "author": "Rast Contributors",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

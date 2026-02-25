@@ -1,0 +1,27 @@
+{
+  "name": "@rast/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Rast AST analysis",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "rast-mcp-server": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "echo 'MCP server tests coming soon'"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}
