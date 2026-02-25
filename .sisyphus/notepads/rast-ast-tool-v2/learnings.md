@@ -17,3 +17,9 @@
 - `ProjectGraph` 实例可以在 unplugin 初始化时通过 `initialize_graph(mode)` 创建，并作为模块级变量导出，以便后续其他工具（如 MCP server）查询。
 - 在 `cache` 模式下，通过在 `transform` hook 中调用 `projectGraph.add_file(id, code)` 可以拦截打包器的 resolution 阶段，将所有解析的文件添加到图中。
 - 在 `on-demand` 模式下，仅初始化图实例，不主动添加文件，避免不必要的内存占用。
+
+## 2026-02-25 (Task 5)
+- MCP Server 可在模块级初始化单例 `projectGraph = initialize_graph('on-demand')`，并在多个 `tools/call` 请求间复用同一 Rust 状态图。
+- 对 `get_file_structure` 的空结果返回文本 `null`、对 `get_symbol_details` 返回 `JSON.stringify(array)`，可保证 MCP 响应始终为稳定的文本 JSON 片段。
+- 用官方 `@modelcontextprotocol/sdk` 的 `Client + StdioClientTransport` 做 QA，比手写 `Content-Length` 报文更稳定，且能覆盖初始化握手流程。
+- 为避免测试导入时意外启动 stdio 服务，ESM 入口应加 `import.meta.url === pathToFileURL(process.argv[1]).href` 守卫再执行 `main()`。
