@@ -12,3 +12,8 @@
 - `napi-rs` 暴露状态对象时可用绑定层 `ProjectGraph { inner: ast_engine::ProjectGraph }` 包装内部 `Arc<RwLock<...>>`，无需改动 engine 实现。
 - 复杂结构在绑定层统一 JSON 序列化（`Option<String>` / `Vec<String>` / `String`）能保持 Node 侧 API 稳定，且避免直接暴露深层 Rust 类型。
 - 为兼容任务要求的 snake_case JS API，可在 `#[napi]` 上使用 `js_name = "..."`（如 `initialize_graph`, `add_file`）。
+
+## 2026-02-25 (Task 4)
+- `ProjectGraph` 实例可以在 unplugin 初始化时通过 `initialize_graph(mode)` 创建，并作为模块级变量导出，以便后续其他工具（如 MCP server）查询。
+- 在 `cache` 模式下，通过在 `transform` hook 中调用 `projectGraph.add_file(id, code)` 可以拦截打包器的 resolution 阶段，将所有解析的文件添加到图中。
+- 在 `on-demand` 模式下，仅初始化图实例，不主动添加文件，避免不必要的内存占用。

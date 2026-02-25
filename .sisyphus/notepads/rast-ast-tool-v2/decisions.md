@@ -11,3 +11,8 @@
 - bindings 层新增 `#[napi] pub struct ProjectGraph` 包装器，不直接对外暴露 `ast_engine::ProjectGraph`，将并发与缓存策略封装在 Rust 内部。
 - `initialize_graph(mode)` 保留 `mode` 参数用于未来扩展，当前版本不参与分支逻辑，仅用于 API 前向兼容。
 - `analyze_dependencies(paths)` 返回 `Vec<(String, Vec<DependencyInfo>)>` 的 JSON 字符串，确保可一次查询多文件且保留每个输入路径的上下文。
+
+## 2026-02-25 (Task 4)
+- 在 `packages/unplugin/src/index.ts` 中导出 `projectGraph` 实例，使其可被外部（如 MCP server）访问。
+- `RastPluginOptions` 增加 `mode?: 'cache' | 'on-demand'` 选项，默认值为 `'on-demand'`，以保持向后兼容并避免默认占用过多内存。
+- 保持现有的 `analyzeAst(code)` 逻辑用于 linting，与 `ProjectGraph` 的构建解耦，确保 `injectIssues` 和 `logIssues` 功能在两种模式下均正常工作。

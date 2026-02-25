@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { rastUnplugin } from '../src/index';
+import { rastUnplugin, projectGraph } from '../src/index';
 
 describe('rastUnplugin', () => {
   it('should return original code when no issues are found', () => {
@@ -47,4 +47,34 @@ describe('rastUnplugin', () => {
     
     consoleWarnSpy.mockRestore();
   });
+
+  it('should add file to graph in cache mode', () => {
+    const plugin = rastUnplugin.vite({ mode: 'cache', logIssues: false });
+    const transform = plugin.transform as (code: string, id: string) => { code: string; map: unknown } | undefined;
+    
+    const code = 'export const cacheTest = 1;';
+    const id = 'cache-test.ts';
+    
+    transform(code, id);
+    
+    expect(projectGraph).toBeDefined();
+    const structure = projectGraph?.get_file_structure(id);
+    expect(structure).toBeTruthy();
+    expect(typeof structure).toBe('string');
+  });
+
+  it('should not add file to graph in on-demand mode', () => {
+    const plugin = rastUnplugin.vite({ mode: 'on-demand', logIssues: false });
+    const transform = plugin.transform as (code: string, id: string) => { code: string; map: unknown } | undefined;
+    
+    const code = 'export const onDemandTest = 1;';
+    const id = 'on-demand-test.ts';
+    
+    transform(code, id);
+    
+    expect(projectGraph).toBeDefined();
+    const structure = projectGraph?.get_file_structure(id);
+    // In on-demand mode, the file is not added to the graph automatically
+    expect(structure).toBeNull();
+});
 });

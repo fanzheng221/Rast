@@ -1,5 +1,5 @@
 import { createUnplugin } from 'unplugin';
-import { analyzeAst } from '@rast/bindings';
+import { analyzeAst, initialize_graph, ProjectGraph } from '@rast/bindings';
 
 export interface RastPluginOptions {
   /**
@@ -12,10 +12,21 @@ export interface RastPluginOptions {
    * @default true
    */
   logIssues?: boolean;
+  /**
+   * The mode of the plugin.
+   * 'cache': Intercepts all file reads and adds them to the project graph.
+   * 'on-demand': Initializes the graph but only adds files when queried.
+   * @default 'on-demand'
+   */
+  mode?: 'cache' | 'on-demand';
 }
 
+export let projectGraph: ProjectGraph | null = null;
+
 export const rastUnplugin = createUnplugin((options: RastPluginOptions = {}) => {
-  const { injectIssues = false, logIssues = true } = options;
+  const { injectIssues = false, logIssues = true, mode = 'on-demand' } = options;
+
+  projectGraph = initialize_graph(mode);
 
   return {
     name: 'rast-unplugin',
@@ -23,6 +34,10 @@ export const rastUnplugin = createUnplugin((options: RastPluginOptions = {}) => 
     transform(code, id) {
       if (id.endsWith('.ts') || id.endsWith('.js') || id.endsWith('.tsx') || id.endsWith('.jsx')) {
         try {
+          if (mode === 'cache' && projectGraph) {
+            projectGraph.add_file(id, code);
+          }
+
           const resultStr = analyzeAst(code);
           const result = JSON.parse(resultStr) as { issues?: { message: string }[] };
 
