@@ -6,6 +6,7 @@ use std::fmt;
 pub struct SpanReplacement {
     pub span: NodeSpan,
     pub replacement: String,
+    pub absorb_trivia: bool,
 }
 
 impl SpanReplacement {
@@ -13,7 +14,13 @@ impl SpanReplacement {
         Self {
             span,
             replacement: replacement.into(),
+            absorb_trivia: false,
         }
+    }
+
+    pub fn with_trivia_absorption(mut self) -> Self {
+        self.absorb_trivia = true;
+        self
     }
 }
 
@@ -78,11 +85,13 @@ pub fn generate_text_diffs(
     replacements: &[SpanReplacement],
 ) -> Result<Vec<TextDiff>, SpanMutatorError> {
     validate_replacements(source, replacements)?;
+    let resolved_spans = resolve_replacement_spans(source, replacements);
+    validate_spans(source, &resolved_spans)?;
 
     replacements
         .iter()
-        .map(|replacement| {
-            let span = replacement.span;
+        .zip(resolved_spans)
+        .map(|(replacement, span)| {
             let start = span.start as usize;
             let end = span.end as usize;
             Ok(TextDiff {
@@ -145,6 +154,112 @@ fn validate_replacements(source: &str, replacements: &[SpanReplacement]) -> Resu
         .map(|replacement| replacement.span)
         .collect::<Vec<_>>();
     validate_spans(source, &spans)
+}
+
+fn resolve_replacement_spans(source: &str, replacements: &[SpanReplacement]) -> Vec<NodeSpan> {
+    if replacements.is_empty() {
+        return Vec::new();
+    }
+
+    let source_len = source.len();
+    let mut indices = (0..replacements.len()).collect::<Vec<_>>();
+    indices.sort_by(|left, right| {
+        replacements[*left]
+            .span
+            .start
+            .cmp(&replacements[*right].span.start)
+            .then_with(|| replacements[*left].span.end.cmp(&replacements[*right].span.end))
+    });
+
+    let mut resolved = replacements
+        .iter()
+        .map(|replacement| replacement.span)
+        .collect::<Vec<_>>();
+    let mut previous_end_limit = 0usize;
+
+    for (position, index) in indices.iter().enumerate() {
+        let replacement = &replacements[*index];
+        let right_limit = indices
+            .get(position + 1)
+            .map(|next| replacements[*next].span.start as usize)
+            .unwrap_or(source_len);
+
+        let candidate = if should_absorb_trivia(replacement) {
+            absorb_trivia_around_span(source, replacement.span, previous_end_limit, right_limit)
+        } else {
+            replacement.span
+        };
+
+        let start = (candidate.start as usize).max(previous_end_limit);
+        let end = (candidate.end as usize).max(start).min(right_limit);
+        let span = NodeSpan {
+            start: start as u32,
+            end: end as u32,
+        };
+
+        resolved[*index] = span;
+        previous_end_limit = end;
+    }
+
+    resolved
+}
+
+fn should_absorb_trivia(replacement: &SpanReplacement) -> bool {
+    replacement.absorb_trivia && replacement.replacement.is_empty()
+}
+
+fn absorb_trivia_around_span(
+    source: &str,
+    span: NodeSpan,
+    left_limit: usize,
+    right_limit: usize,
+) -> NodeSpan {
+    let mut start = span.start as usize;
+    let mut end = span.end as usize;
+
+    while start > left_limit {
+        let Some(ch) = source[left_limit..start].chars().next_back() else {
+            break;
+        };
+        if !is_horizontal_whitespace(ch) {
+            break;
+        }
+        start -= ch.len_utf8();
+    }
+
+    while end < right_limit {
+        let Some(ch) = source[end..right_limit].chars().next() else {
+            break;
+        };
+        if !is_horizontal_whitespace(ch) {
+            break;
+        }
+        end += ch.len_utf8();
+    }
+
+    if end < right_limit {
+        let tail = &source[end..right_limit];
+        if tail.starts_with("\r\n") {
+            end += 2;
+        } else if let Some(ch) = tail.chars().next() {
+            if is_newline(ch) {
+                end += ch.len_utf8();
+            }
+        }
+    }
+
+    NodeSpan {
+        start: start as u32,
+        end: end as u32,
+    }
+}
+
+fn is_horizontal_whitespace(ch: char) -> bool {
+    ch.is_whitespace() && !is_newline(ch)
+}
+
+fn is_newline(ch: char) -> bool {
+    ch == '\n' || ch == '\r'
 }
 
 fn validate_spans(source: &str, spans: &[NodeSpan]) -> Result<(), SpanMutatorError> {

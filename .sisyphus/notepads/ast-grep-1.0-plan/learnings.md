@@ -222,3 +222,10 @@ ast-grep-1.0-plan 需要在此基础上扩展，新增：
 - 在应用前统一做 span 校验：`start <= end`、越界检查、UTF-8 边界检查、重叠检查；`apply_text_diffs` 额外校验原文本片段一致性（`SourceMismatch`）。
 - 新增 `crates/ast_engine/tests/span_mutator_tests.rs`，覆盖单点替换、多点独立替换、倒序应用验证、重叠拒绝、空替换删除、空文本边界、越界与原文不一致错误。
 - `crates/ast_engine/src/lib.rs` 已增加 `pub mod span_mutator;` 与 `pub use span_mutator::*;`。
+
+## [2026-02-28] TASK-4.3 Trivia Absorption 实现
+- `SpanReplacement` 新增可选字段 `absorb_trivia: bool`，默认 `false`，并提供链式方法 `with_trivia_absorption()`；保持既有调用兼容。
+- `generate_text_diffs` 在删除替换（`replacement == ""`）且开启选项时，先解析有效 span：向左吸收行内前导空白，向右吸收行内尾随空白与一个换行（支持 `\n` / `\r\n`）。
+- 多删除场景通过按源码顺序计算 `left/right` 边界并逐个推进 `previous_end_limit`，避免 trivia 被重复吸收导致重叠。
+- 新增 `crates/ast_engine/tests/trivia_absorption_tests.rs`，覆盖尾随换行吸收、前导空白吸收、双侧吸收、非删除不吸收、多删除边界与默认不吸收兼容行为。
+- 验证通过：`cargo test -p ast_engine --test trivia_absorption_tests`（6/6）。
