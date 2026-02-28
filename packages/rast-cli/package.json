@@ -1,0 +1,21 @@
+{
+  "name": "@rast/cli",
+  "version": "0.1.0",
+  "description": "Rast CLI tool for pattern matching and code rewriting",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "bin": {
+    "rast": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "cargo build --release && node scripts/build.mjs",
+    "dev": "cargo build && node scripts/build.mjs",
+    "test": "cargo test"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@rast/bindings": "workspace:*"
+  }
+}
