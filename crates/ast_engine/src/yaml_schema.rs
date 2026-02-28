@@ -37,6 +37,8 @@ pub enum RuleKind {
     All(AllCompositeRule),
     Any(AnyCompositeRule),
     Not(NotCompositeRule),
+    Inside(InsideRelationalRule),
+    Has(HasRelationalRule),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -74,6 +76,18 @@ pub struct AnyCompositeRule {
 pub struct NotCompositeRule {
     pub not: Box<Rule>,
 }
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InsideRelationalRule {
+    pub inside: Box<Rule>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HasRelationalRule {
+    pub has: Box<Rule>,
+}
+
 
 impl RuleCore {
     pub fn from_yaml(input: &str) -> Result<Self, serde_yaml::Error> {

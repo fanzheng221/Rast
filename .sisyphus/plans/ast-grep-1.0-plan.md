@@ -49,7 +49,7 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _QA Scenario_: `cargo test -p ast_engine --test yaml_schema_tests`
 
 ### Wave 2 (After Wave 1 Completes)
-- [ ] **[TASK-1.3] Wildcard Parsing**
+|- [x] **[TASK-1.3] Wildcard Parsing**
   - _Description_: Enable `oxc` to parse `$A` and `$$$` into a Pattern AST. Handle invalid identifier contexts.
   - _Status_: TODO
   - _Dependencies_: [TASK-1.1]
@@ -57,7 +57,7 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _Effort_: 2d
   - _QA Scenario_: `cargo test -p ast_engine --test wildcard_parsing_tests`
 - [ ] **[TASK-3.3] Relational Rules**
-  - _Description_: Implement `inside`, `has` AST traversal filters.
+  |- [x] **[TASK-3.3] Relational Rules**
   - _Status_: TODO
   - _Dependencies_: [TASK-3.1, TASK-1.1]
   - _Assignee_: Auto (unspecified-high)

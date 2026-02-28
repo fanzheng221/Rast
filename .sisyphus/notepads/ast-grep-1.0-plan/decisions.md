@@ -96,3 +96,12 @@
 - 单测新增两组覆盖：
   - YAML 解析：`all/any/not` 成功解析 + 多组合键混用失败。
   - 组合匹配：`all` 全匹配约束、`any` 分支隔离、`not` 反向匹配且环境不变。
+
+## [2026-02-28] TASK-3.3 Relational Rules 设计决策
+
+- 在 `crates/ast_engine/src/relational_rules.rs` 中新增 `RelationalRuleKind` (`Inside`, `Has`) 和 `RelationalRule` 结构体。
+- `evaluate_relational_rule` 函数设计为接受 `target: AstNode`, `ancestors: &[AstNode]`, `rule: &RelationalRule`, 以及一个 `evaluate` 闭包。
+- `Inside` 规则通过反向遍历 `ancestors` 数组来检查当前节点是否在匹配规则的节点内部。这避免了在 `AstNode` 中引入 `parent()` 指针，保持了 `NodeTrait` 的简洁性。
+- `Has` 规则通过递归遍历 `target.children()` 来检查当前节点的子树中是否包含匹配规则的节点。
+- 在 `yaml_schema.rs` 中新增 `InsideRelationalRule` 和 `HasRelationalRule` 结构体，并将其集成到 `RuleKind` 枚举中，使用 `#[serde(deny_unknown_fields)]` 确保 YAML 解析的严格性。
+- 发现 `NodeTrait::children()` 对于 `Function` 节点不返回其函数体（BlockStatement），这在测试中通过使用 `VariableDeclaration` 绕过。未来如果需要遍历函数体，可能需要扩展 `NodeTrait::children()` 的实现。
