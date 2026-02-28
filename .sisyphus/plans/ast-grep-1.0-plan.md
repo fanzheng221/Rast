@@ -117,21 +117,21 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _QA Scenario_: `cargo test -p ast_engine --test span_mutator_tests`
 
 ### Wave 7 (After Wave 6 Completes)
-- [ ] **[TASK-4.3] Trivia Absorption**
+- [x] **[TASK-4.3] Trivia Absorption**
   - _Description_: Automatically absorb adjacent whitespace/newlines when deleting nodes.
   - _Status_: TODO
   - _Dependencies_: [TASK-4.2]
   - _Assignee_: Auto (deep)
   - _Effort_: 2d
   - _QA Scenario_: `cargo test -p ast_engine --test trivia_absorption_tests`
-- [ ] **[TASK-5.1] NAPI Bindings Update**
+- [x] **[TASK-5.1] NAPI Bindings Update**
   - _Description_: Expose mutator API to Node.js via `napi-rs`.
   - _Status_: TODO
   - _Dependencies_: [TASK-4.2]
   - _Assignee_: Auto (unspecified-high)
   - _Effort_: 1.5d
   - _QA Scenario_: `pnpm --filter bindings run test`
-- [ ] **[TASK-5.2] CLI Build**
+- [x] **[TASK-5.2] CLI Build**
   - _Description_: Implement `rast run` and `rast scan` with `--dry-run` mode.
   - _Status_: TODO
   - _Dependencies_: [TASK-4.2, TASK-3.1]
@@ -140,7 +140,7 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _QA Scenario_: `cargo test -p rast_cli`
 
 ### Wave 8 (After Wave 7 Completes)
-- [ ] **[TASK-5.3] MCP Server Extension**
+- [x] **[TASK-5.3] MCP Server Extension**
   - _Description_: Expose `findPattern` and `applyRule` tools in the MCP server.
   - _Status_: TODO
   - _Dependencies_: [TASK-5.1]
@@ -149,9 +149,9 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _QA Scenario_: `pnpm --filter mcp-server run test`
 
 ## 6. 最终验证波次 (Final Verification Wave)
-- [ ] **[VERIFY-1]** 性能基准测试: `rast scan` 在 10000 个文件的 JS/TS 项目中扫描 10 条复杂规则，确保耗时优于 ast-grep。
-- [ ] **[VERIFY-2]** Vue 集成测试: 对数十个真实的 Vue 3 SFC 项目运行规则，验证偏移量修正完全正确。
-- [ ] **[VERIFY-3]** NAPI & MCP 端到端: 使用编写好的 `@rast/napi` 脚本，以及通过 AI 触发 MCP 命令，完整跑通 Codemod。
+- [x] **[VERIFY-1]** 性能基准测试: `rast scan` 在 10000 个文件的 JS/TS 项目中扫描 10 条复杂规则，确保耗时优于 ast-grep。
+- [x] **[VERIFY-2]** Vue 集成测试: 对数十个真实的 Vue 3 SFC 项目运行规则，验证偏移量修正完全正确。
+- [x] **[VERIFY-3]** NAPI & MCP 端到端: 使用编写好的 `@rast/napi` 脚本，以及通过 AI 触发 MCP 命令，完整跑通 Codemod。
 
 ## 7. 高精度审查补充 (Momus Review Additions)
 - **NodeTrait 优化**: 强烈建议直接利用 `oxc_ast::AstKind` 和 `oxc_semantic::AstNode` 来实现统一节点抽象。不要从零手写 Trait Object，而是基于 `AstKind` 暴露 `kind()`, `span()`，并考虑使用 Rust 宏 (Procedural Macro) 自动生成 `children()` 的遍历代码。

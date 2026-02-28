@@ -229,3 +229,9 @@ ast-grep-1.0-plan 需要在此基础上扩展，新增：
 - 多删除场景通过按源码顺序计算 `left/right` 边界并逐个推进 `previous_end_limit`，避免 trivia 被重复吸收导致重叠。
 - 新增 `crates/ast_engine/tests/trivia_absorption_tests.rs`，覆盖尾随换行吸收、前导空白吸收、双侧吸收、非删除不吸收、多删除边界与默认不吸收兼容行为。
 - 验证通过：`cargo test -p ast_engine --test trivia_absorption_tests`（6/6）。
+
+- 2026-02-28 TASK-5.1: 在 packages/bindings/src/lib.rs 新增 find_pattern/apply_rule/scan_directory 三个 NAPI 导出；find_pattern 通过 PatternMatcher::find_all_matches 返回 span/text/metavariables JSON；apply_rule 支持 RuleCore::from_yaml + TemplateFix::from + generate_replacement + apply_span_replacements；scan_directory 递归处理 .js/.ts/.jsx/.tsx 并支持 dry-run。
+- 2026-02-28 TASK-5.1: bindings 新增依赖 oxc.workspace、regex、serde_yaml、walkdir，并补齐 5 个新增测试（模式匹配、元变量、规则应用、fix 插值、目录 dry-run）。
+
+- TASK-5.3: `packages/mcp-server/src/index.ts` 改为 `createRequire(import.meta.url)` + `getBindings()` 动态加载 `@rast/bindings`，避免 TypeScript 对 Rust NAPI 包类型声明的静态解析失败。
+- 新增 `findPattern`/`applyRule`/`scanDirectory` 工具，同时保留 `analyze_ast`、`get_file_structure`、`get_symbol_details`、`analyze_dependencies` 兼容能力。

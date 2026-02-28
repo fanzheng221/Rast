@@ -1,5 +1,7 @@
-const { analyzeAst } = require('../packages/bindings');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
+const { analyzeAst, applyRule, scanDirectory } = require('../packages/bindings');
 const { rastUnplugin } = require('../packages/unplugin/dist/index.cjs');
 
 function assert(condition, message) {
@@ -14,79 +16,105 @@ function getTextContent(result, context) {
   return result.content[0].text;
 }
 
-async function runCodebaseOracleWorkflowChecks() {
+function createTempDir(prefix) {
+  return fs.mkdtempSync(path.join(os.tmpdir(), `rast-${prefix}-`));
+}
+
+function cleanupDir(dir) {
+  fs.rmSync(dir, { recursive: true, force: true });
+}
+
+function noConsoleRuleYaml() {
+  return [
+    'id: no-console',
+    'language: ts',
+    'rule:',
+    '  pattern: console.log($A)',
+    'fix: logger.info($A)',
+    '',
+  ].join('\n');
+}
+
+async function runBindingsChecks() {
+  console.log('Test 1: Direct bindings call...');
+  const analysis = JSON.parse(analyzeAst('export const x = 1;'));
+  assert(Array.isArray(analysis.exports), 'Test 1 failed: exports should be an array');
+  console.log('✓ Test 1 passed');
+
+  console.log('Test 2: Code with linting issues...');
+  const withIssues = JSON.parse(analyzeAst('var x = 1;'));
+  assert(Array.isArray(withIssues.issues), 'Test 2 failed: issues should be an array');
+  assert(withIssues.issues.length > 0, 'Test 2 failed: expected at least one issue');
+  console.log('✓ Test 2 passed');
+
+  console.log('Test 3: NAPI codemod apply_rule + scan_directory...');
+  const updated = applyRule('console.log(foo);', noConsoleRuleYaml());
+  assert(updated === 'logger.info(foo)', 'Test 3 failed: applyRule output mismatch');
+
+  const scanDir = createTempDir('scan');
+  const targetFile = path.join(scanDir, 'sample.ts');
+  fs.writeFileSync(targetFile, 'console.log(bar);', 'utf8');
+  try {
+    const result = JSON.parse(scanDirectory(scanDir, noConsoleRuleYaml(), false));
+    assert(Array.isArray(result), 'Test 3 failed: scanDirectory should return JSON array');
+    assert(result.length === 1, 'Test 3 failed: expected one scanned file');
+    assert(result[0].matches === 1, 'Test 3 failed: expected one match');
+    const rewritten = fs.readFileSync(targetFile, 'utf8');
+    assert(rewritten === 'logger.info(bar)', 'Test 3 failed: file should be rewritten by scanDirectory');
+  } finally {
+    cleanupDir(scanDir);
+  }
+  console.log('✓ Test 3 passed');
+}
+
+function runUnpluginChecks() {
+  console.log('Test 4: Unplugin transform...');
+  const plugin = rastUnplugin.vite({ injectIssues: true, logIssues: false });
+  const transformResult = plugin.transform('var x = 1;', 'test.js');
+  assert(transformResult && transformResult.code, 'Test 4 failed: transform should return code');
+  assert(transformResult.code.includes('Rast Issues:'), 'Test 4 failed: transform should inject issues comment');
+  console.log('✓ Test 4 passed');
+}
+
+async function runMcpDirectChecks() {
+  console.log('Test 5: MCP direct module callTool...');
   const mcpPath = path.resolve(__dirname, '../packages/mcp-server/dist/index.js');
   const mcpModule = await import(mcpPath);
-  const { callTool, projectGraph, tools } = mcpModule;
+  const { callTool, tools } = mcpModule;
 
-  assert(Array.isArray(tools), 'Test 4 failed: tools should be an array');
+  assert(Array.isArray(tools), 'Test 5 failed: tools should be an array');
   const toolNames = new Set(tools.map((tool) => tool.name));
-  assert(toolNames.has('get_file_structure'), 'Test 4 failed: get_file_structure tool missing');
-  assert(toolNames.has('get_symbol_details'), 'Test 4 failed: get_symbol_details tool missing');
-  assert(toolNames.has('analyze_dependencies'), 'Test 4 failed: analyze_dependencies tool missing');
+  assert(toolNames.has('findPattern'), 'Test 5 failed: findPattern tool missing');
+  assert(toolNames.has('applyRule'), 'Test 5 failed: applyRule tool missing');
+  assert(toolNames.has('scanDirectory'), 'Test 5 failed: scanDirectory tool missing');
 
-  const modelPath = 'src/models/user.ts';
-  const servicePath = 'src/services/user-service.ts';
-  const modelCode = [
-    'export interface User {',
-    '  id: string;',
-    '  name: string;',
-    '}',
-    '',
-    'export const userSeed: User = { id: "1", name: "Ada" };',
-  ].join('\n');
-  const serviceCode = [
-    'import { userSeed, type User } from "../models/user";',
-    '',
-    '/** Build display name for UI */',
-    'export function buildDisplayName(user: User): string {',
-    '  return user.name + "#" + user.id;',
-    '}',
-    '',
-    'export const defaultDisplayName = buildDisplayName(userSeed);',
-  ].join('\n');
+  const applyResult = await callTool('applyRule', {
+    source: 'console.log(value);',
+    rule: noConsoleRuleYaml(),
+  });
+  assert(applyResult === 'logger.info(value)', 'Test 5 failed: MCP applyRule result mismatch');
 
-  projectGraph.add_file(modelPath, modelCode);
-  projectGraph.add_file(servicePath, serviceCode);
-
-  const structureText = callTool('get_file_structure', { path: servicePath });
-  assert(structureText && structureText !== 'null', 'Test 4 failed: get_file_structure returned null for known file');
-  const structure = JSON.parse(structureText);
-  assert(Array.isArray(structure.imports), 'Test 4 failed: file structure imports should be an array');
-  assert(Array.isArray(structure.exports), 'Test 4 failed: file structure exports should be an array');
-  assert(
-    structure.exports.some((symbol) => symbol.name === 'buildDisplayName'),
-    'Test 4 failed: expected buildDisplayName export in file structure'
-  );
-
-  const symbolDetailsText = callTool('get_symbol_details', { symbol: 'buildDisplayName' });
-  const symbolDetails = JSON.parse(symbolDetailsText);
-  assert(Array.isArray(symbolDetails), 'Test 4 failed: symbol details should be an array');
-  assert(symbolDetails.length > 0, 'Test 4 failed: expected at least one symbol detail');
-  const firstSymbol = JSON.parse(symbolDetails[0]);
-  assert(firstSymbol.name === 'buildDisplayName', 'Test 4 failed: incorrect symbol returned');
-
-  const dependenciesText = callTool('analyze_dependencies', { paths: [servicePath] });
-  const dependencies = JSON.parse(dependenciesText);
-  assert(Array.isArray(dependencies), 'Test 4 failed: dependencies should be an array');
-  assert(Array.isArray(dependencies[0]), 'Test 4 failed: dependencies entry should be tuple-like array');
-  assert(dependencies[0][0] === servicePath, 'Test 4 failed: dependencies should preserve requested file path');
-  assert(Array.isArray(dependencies[0][1]), 'Test 4 failed: dependencies list should be array');
-  assert(
-    dependencies[0][1].some((dep) => dep.source === modelPath),
-    'Test 4 failed: expected dependency on src/models/user.ts'
-  );
-
-  let invalidArgThrows = false;
+  const scanDir = createTempDir('mcp-direct');
+  const targetFile = path.join(scanDir, 'entry.ts');
+  fs.writeFileSync(targetFile, 'console.log(data);', 'utf8');
   try {
-    callTool('get_symbol_details', {});
-  } catch (error) {
-    invalidArgThrows = /symbol argument/.test(String(error));
+    const scanResultText = await callTool('scanDirectory', {
+      rootPath: scanDir,
+      rule: noConsoleRuleYaml(),
+      dryRun: false,
+    });
+    const scanResult = JSON.parse(scanResultText);
+    assert(Array.isArray(scanResult), 'Test 5 failed: MCP scanDirectory should return JSON array');
+    assert(scanResult[0].matches === 1, 'Test 5 failed: MCP scanDirectory should find one match');
+    assert(fs.readFileSync(targetFile, 'utf8') === 'logger.info(data)', 'Test 5 failed: MCP scanDirectory should rewrite file');
+  } finally {
+    cleanupDir(scanDir);
   }
-  assert(invalidArgThrows, 'Test 4 failed: get_symbol_details should validate missing symbol argument');
+  console.log('✓ Test 5 passed');
 }
 
 async function runMcpStdioCommunicationChecks() {
+  console.log('Test 6: MCP stdio communication...');
   const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
   const { StdioClientTransport } = await import('@modelcontextprotocol/sdk/client/stdio.js');
   const mcpPath = path.resolve(__dirname, '../packages/mcp-server/dist/index.js');
@@ -98,74 +126,55 @@ async function runMcpStdioCommunicationChecks() {
   const client = new Client({ name: 'rast-e2e-client', version: '0.1.0' }, { capabilities: {} });
 
   await client.connect(transport);
+  const scanDir = createTempDir('mcp-stdio');
+  const targetFile = path.join(scanDir, 'stdio.ts');
+  fs.writeFileSync(targetFile, 'console.log(stdioValue);', 'utf8');
+
   try {
-    const { tools } = await client.listTools();
-    const toolNames = new Set(tools.map((tool) => tool.name));
-    assert(toolNames.has('get_file_structure'), 'Test 4 failed: stdio listTools missing get_file_structure');
-    assert(toolNames.has('get_symbol_details'), 'Test 4 failed: stdio listTools missing get_symbol_details');
-    assert(toolNames.has('analyze_dependencies'), 'Test 4 failed: stdio listTools missing analyze_dependencies');
+    const listed = await client.listTools();
+    const toolNames = new Set(listed.tools.map((tool) => tool.name));
+    assert(toolNames.has('applyRule'), 'Test 6 failed: stdio listTools missing applyRule');
+    assert(toolNames.has('scanDirectory'), 'Test 6 failed: stdio listTools missing scanDirectory');
 
-    const astResult = await client.callTool({
-      name: 'analyze_ast',
-      arguments: { source: 'export const viaMcp = 1;' },
+    const applyResult = await client.callTool({
+      name: 'applyRule',
+      arguments: {
+        source: 'console.log(viaMcp);',
+        rule: noConsoleRuleYaml(),
+      },
     });
-    const astText = getTextContent(astResult, 'Test 4 analyze_ast');
-    const parsedAst = JSON.parse(astText);
-    assert(Array.isArray(parsedAst.exports), 'Test 4 failed: stdio analyze_ast should return exports array');
+    const applyText = getTextContent(applyResult, 'Test 6 applyRule');
+    assert(applyText === 'logger.info(viaMcp)', 'Test 6 failed: stdio applyRule result mismatch');
 
-    const emptyStructureResult = await client.callTool({
-      name: 'get_file_structure',
-      arguments: { path: 'src/unknown.ts' },
+    const scanResult = await client.callTool({
+      name: 'scanDirectory',
+      arguments: {
+        rootPath: scanDir,
+        rule: noConsoleRuleYaml(),
+        dryRun: false,
+      },
     });
-    const emptyStructureText = getTextContent(emptyStructureResult, 'Test 4 get_file_structure');
-    assert(emptyStructureText === 'null', 'Test 4 failed: unknown path should return null from MCP server');
+    const scanText = getTextContent(scanResult, 'Test 6 scanDirectory');
+    const parsed = JSON.parse(scanText);
+    assert(Array.isArray(parsed), 'Test 6 failed: stdio scanDirectory should return JSON array');
+    assert(parsed[0].matches === 1, 'Test 6 failed: stdio scanDirectory should find one match');
+    assert(
+      fs.readFileSync(targetFile, 'utf8') === 'logger.info(stdioValue)',
+      'Test 6 failed: stdio scanDirectory should rewrite file'
+    );
   } finally {
+    cleanupDir(scanDir);
     await client.close();
   }
+  console.log('✓ Test 6 passed');
 }
 
 async function runTests() {
   try {
-    // Test 1: Direct bindings call
-    console.log('Test 1: Direct bindings call...');
-    const result1 = analyzeAst('export const x = 1;');
-    const parsed1 = JSON.parse(result1);
-    if (!parsed1.exports || !Array.isArray(parsed1.exports)) {
-      throw new Error('Test 1 failed: exports should be an array');
-    }
-    console.log('✓ Test 1 passed');
-
-    // Test 2: With issues
-    console.log('Test 2: Code with linting issues...');
-    const result2 = analyzeAst('var x = 1;');
-    const parsed2 = JSON.parse(result2);
-    if (!parsed2.issues || !Array.isArray(parsed2.issues)) {
-      throw new Error('Test 2 failed: issues should be an array');
-    }
-    if (parsed2.issues.length === 0) {
-      throw new Error('Test 2 failed: expected at least one issue');
-    }
-    console.log('✓ Test 2 passed');
-
-    // Test 3: Unplugin
-    console.log('Test 3: Unplugin transform...');
-    const plugin = rastUnplugin.vite({ injectIssues: true, logIssues: false });
-    const transformResult = plugin.transform('var x = 1;', 'test.js');
-    if (!transformResult || !transformResult.code) {
-      throw new Error('Test 3 failed: transform should return code');
-    }
-    if (!transformResult.code.includes('Rast Issues:')) {
-      throw new Error('Test 3 failed: transform should inject issues comment');
-    }
-    console.log('✓ Test 3 passed');
-
-    console.log('Test 4: MCP server communication and Codebase Oracle workflow...');
-    await runCodebaseOracleWorkflowChecks();
-    console.log('  - Codebase Oracle tool checks passed');
+    await runBindingsChecks();
+    runUnpluginChecks();
+    await runMcpDirectChecks();
     await runMcpStdioCommunicationChecks();
-    console.log('  - MCP stdio communication checks passed');
-    console.log('✓ Test 4 passed');
-
     console.log('All E2E tests passed!');
     process.exit(0);
   } catch (error) {

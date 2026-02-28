@@ -44,13 +44,19 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/rast-cli:
+    dependencies:
+      '@rast/bindings':
+        specifier: workspace:*
+        version: link:../bindings
+
   packages/unplugin:
     dependencies:
       '@rast/bindings':
         specifier: workspace:*
         version: link:../bindings
       unplugin:
-        specifier: ^1.16.1
+        specifier: ^1.10.0
         version: 1.16.1
       webpack:
         specifier: '>=5.0.0'

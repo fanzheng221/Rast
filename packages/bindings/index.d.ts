@@ -14,6 +14,10 @@ export declare function initialize_graph(mode: string): ProjectGraph
  * * JSON string containing exports and linting issues
  */
 export declare function analyzeAst(source: string): string
+export declare function findPattern(source: string, pattern: string): string
+export declare function findPatternInVueSfc(source: string, pattern: string): string
+export declare function applyRule(source: string, yamlRule: string): string
+export declare function scanDirectory(rootPath: string, yamlRule: string, dryRun: boolean): string
 export declare class ProjectGraph {
   add_file(path: string, code: string): void
   get_file_structure(path: string): string | null

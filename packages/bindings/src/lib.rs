@@ -7,7 +7,7 @@ use ast_engine::ProjectGraph as InternalProjectGraph;
 use ast_engine::{
     apply_span_replacements, generate_replacement, to_pattern_ast, AstNode, ConflictResolution,
     IntoAstNode, MatchEnvironment, MatchResult, Matcher, NodeSpan, NodeTrait, PatternMatcher,
-    Rule, RuleCore, RuleKind, RuleLanguage, SpanReplacement, TemplateFix,
+    Rule, RuleCore, RuleKind, RuleLanguage, SpanReplacement, TemplateFix, VueSfcScriptKind,
 };
 use napi_derive::napi;
 use oxc::{allocator::Allocator, parser::Parser, span::SourceType};
@@ -88,6 +88,33 @@ struct PatternMatchPayload {
     span: SerializableSpan,
     text: String,
     metavariables: Map<String, Value>,
+}
+
+#[derive(Serialize)]
+struct SerializableLocation {
+    line: usize,
+    column: usize,
+}
+
+#[derive(Serialize)]
+struct VueSfcScriptPayload {
+    span: SerializableSpan,
+    kind: String,
+}
+
+#[derive(Serialize)]
+struct VueSfcPatternMatchPayload {
+    relative_span: SerializableSpan,
+    absolute_span: SerializableSpan,
+    text: String,
+    metavariables: Map<String, Value>,
+    location: SerializableLocation,
+}
+
+#[derive(Serialize)]
+struct VueSfcPatternSearchPayload {
+    script: Option<VueSfcScriptPayload>,
+    matches: Vec<VueSfcPatternMatchPayload>,
 }
 
 #[derive(Debug, Clone)]
@@ -446,6 +473,73 @@ pub fn find_pattern(source: String, pattern: String) -> napi::Result<String> {
 }
 
 #[napi]
+pub fn find_pattern_in_vue_sfc(source: String, pattern: String) -> napi::Result<String> {
+    let extractor = ast_engine::VueSfcExtractor::new(&source);
+    let Some(block) = extractor.extract_script_block() else {
+        return Ok(to_json_string(&VueSfcPatternSearchPayload {
+            script: None,
+            matches: Vec::new(),
+        }));
+    };
+
+    let allocator = Allocator::default();
+    let source_type = default_source_type();
+    let parsed_source = Parser::new(&allocator, block.content, source_type).parse();
+    if let Some(err) = parsed_source.errors.first() {
+        return Err(to_napi_error("Invalid Vue SFC script block", err));
+    }
+
+    let pattern_ast = parse_pattern_ast(&pattern, source_type)?;
+    let matcher = PatternMatcher::default();
+    let matches = matcher.find_all_matches(
+        parsed_source.program.as_node(block.content),
+        &pattern_ast,
+        ConflictResolution::PreferOuter,
+    );
+
+    let script_span = block.offset_map.script_span();
+    let script_payload = VueSfcScriptPayload {
+        span: SerializableSpan {
+            start: script_span.start,
+            end: script_span.end,
+        },
+        kind: match block.kind {
+            VueSfcScriptKind::Script => "script".to_string(),
+            VueSfcScriptKind::ScriptSetup => "scriptSetup".to_string(),
+        },
+    };
+
+    let mut payload = Vec::with_capacity(matches.len());
+    for matched in matches {
+        let absolute_span = block
+            .offset_map
+            .relative_to_absolute_span(matched.span)
+            .ok_or_else(|| {
+                napi::Error::from_reason("Failed to map relative span to absolute Vue SFC offset")
+            })?;
+        let (line, column) = block.offset_map.absolute_offset_to_line_col(absolute_span.start);
+        payload.push(VueSfcPatternMatchPayload {
+            relative_span: SerializableSpan {
+                start: matched.span.start,
+                end: matched.span.end,
+            },
+            absolute_span: SerializableSpan {
+                start: absolute_span.start,
+                end: absolute_span.end,
+            },
+            text: slice_span_text(&source, absolute_span)?,
+            metavariables: env_to_metavariables(&matched.environment),
+            location: SerializableLocation { line, column },
+        });
+    }
+
+    Ok(to_json_string(&VueSfcPatternSearchPayload {
+        script: Some(script_payload),
+        matches: payload,
+    }))
+}
+
+#[napi]
 pub fn apply_rule(source: String, yaml_rule: String) -> napi::Result<String> {
     let parsed_rule = parse_rule(&yaml_rule)?;
 
@@ -592,6 +686,56 @@ export function run() {
         assert_eq!(matches.len(), 1);
         assert_eq!(matches[0]["metavariables"]["A"], "answer");
         assert_eq!(matches[0]["metavariables"]["B"], "foobar");
+    }
+
+    #[test]
+    fn test_find_pattern_in_vue_sfc_offsets() {
+        let source = r#"<template>
+  <button @click="inc">{{ count }}</button>
+</template>
+<script setup lang="ts">
+const count = 1;
+console.log(count);
+</script>
+"#;
+
+        let result = find_pattern_in_vue_sfc(
+            source.to_string(),
+            "const count = 1;\nconsole.log(count);".to_string(),
+        )
+        .unwrap();
+        let payload: Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(payload["script"]["kind"], "scriptSetup");
+
+        let script_start = payload["script"]["span"]["start"].as_u64().unwrap() as usize;
+        let script_end = payload["script"]["span"]["end"].as_u64().unwrap() as usize;
+        assert!(script_start < script_end);
+        assert!(source[script_start..script_end].contains("const count = 1;"));
+
+        let matches = payload["matches"].as_array().unwrap();
+        assert_eq!(matches.len(), 1);
+        let matched = &matches[0];
+
+        let relative_start = matched["relative_span"]["start"].as_u64().unwrap() as usize;
+        let absolute_start = matched["absolute_span"]["start"].as_u64().unwrap() as usize;
+        let absolute_end = matched["absolute_span"]["end"].as_u64().unwrap() as usize;
+        assert_eq!(absolute_start, script_start + relative_start);
+        let matched_text = &source[absolute_start..absolute_end];
+        assert!(matched_text.contains("const count = 1;"));
+        assert!(matched_text.contains("console.log(count);"));
+    }
+
+    #[test]
+    fn test_find_pattern_in_vue_sfc_without_script() {
+        let source = r#"<template><div>no script</div></template>"#;
+        let result = find_pattern_in_vue_sfc(
+            source.to_string(),
+            "console.log($A)".to_string(),
+        )
+        .unwrap();
+        let payload: Value = serde_json::from_str(&result).unwrap();
+        assert!(payload["script"].is_null());
+        assert_eq!(payload["matches"].as_array().unwrap().len(), 0);
     }
 
     #[test]

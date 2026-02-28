@@ -1,16 +1,18 @@
 [workspace]
+resolver = "2"
 members = [
     "crates/ast_engine",
     "packages/bindings",
+    "packages/rast-cli",
 ]
-resolver = "2"
+
+[workspace.dependencies]
+ast_engine = { path = "./crates/ast_engine" }
+bindings = { path = "./packages/bindings", default-features = false, features = ["napi4"] }
+oxc = { version = "0", features = ["full"] }
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 authors = ["Rast Contributors"]
 license = "MIT"
-
-[workspace.dependencies]
-oxc = { version = "0.38", features = ["full"] }
-ast_engine = { path = "./crates/ast_engine" }

@@ -2,11 +2,18 @@
   "name": "rast",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "description": "Rust-powered AST analysis tool with MCP support",
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "test:e2e": "pnpm build && node scripts/e2e-test.js",
+    "verify:benchmark": "pnpm build && node scripts/verify-benchmark.js",
+    "verify:vue": "pnpm build && node scripts/verify-vue-offsets.js",
+    "verify:napi-mcp": "pnpm build && node scripts/verify-napi-mcp-e2e.js",
+    "verify:all": "pnpm verify:benchmark && pnpm verify:vue && pnpm verify:napi-mcp",
     "format": "prettier --write ."
   },
   "keywords": [

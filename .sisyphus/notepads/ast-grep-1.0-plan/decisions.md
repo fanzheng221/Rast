@@ -105,3 +105,5 @@
 - `Has` 规则通过递归遍历 `target.children()` 来检查当前节点的子树中是否包含匹配规则的节点。
 - 在 `yaml_schema.rs` 中新增 `InsideRelationalRule` 和 `HasRelationalRule` 结构体，并将其集成到 `RuleKind` 枚举中，使用 `#[serde(deny_unknown_fields)]` 确保 YAML 解析的严格性。
 - 发现 `NodeTrait::children()` 对于 `Function` 节点不返回其函数体（BlockStatement），这在测试中通过使用 `VariableDeclaration` 绕过。未来如果需要遍历函数体，可能需要扩展 `NodeTrait::children()` 的实现。
+
+- 决策: 在 MCP Server 侧采用运行时动态 require Rust NAPI bindings，而非补齐 `.d.ts`。原因是绑定来源于 `#[napi]` 导出，最稳妥方案是运行时加载并用本地 TypeScript 结构类型约束返回值。
