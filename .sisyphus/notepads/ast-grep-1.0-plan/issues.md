@@ -23,3 +23,10 @@ No issues encountered during session initialization.
 
 **此问题已报告给 Orchestrator。**
 
+
+## [2026-02-28] TASK-4.1 Scope Creep 问题
+- 子代理在修复 TASK-4.1 时进行了超出范围的代码重构
+- 问题：将大量代码从 lib.rs 移到独立模块（overlap_resolution, text_interpolation）
+- 影响：虽然重构在技术上是正确的，但超出了单个任务的范围
+- 验证：所有测试通过，功能正确，但违反了"单一文件、单一更改"原则
+- 建议：未来任务应该更加严格地限制在指定范围内

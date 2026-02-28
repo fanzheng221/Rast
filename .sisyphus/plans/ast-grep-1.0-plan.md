@@ -56,7 +56,7 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _Assignee_: Auto (deep)
   - _Effort_: 2d
   - _QA Scenario_: `cargo test -p ast_engine --test wildcard_parsing_tests`
-- [ ] **[TASK-3.3] Relational Rules**
+- [x] **[TASK-3.3] Relational Rules**
   |- [x] **[TASK-3.3] Relational Rules**
   - _Status_: TODO
   - _Dependencies_: [TASK-3.1, TASK-1.1]
@@ -65,7 +65,7 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _QA Scenario_: `cargo test -p ast_engine --test relational_rules_tests`
 
 ### Wave 3 (After Wave 2 Completes)
-- [ ] **[TASK-2.1] Equivalence Matching**
+- [x] **[TASK-2.1] Equivalence Matching**
   - _Description_: Implement CST/AST equivalence matching algorithm comparing target AST and Pattern AST.
   - _Status_: TODO
   - _Dependencies_: [TASK-1.1, TASK-1.3]
@@ -76,21 +76,21 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _QA Scenario_: `cargo test -p ast_engine --test equivalence_matching_tests`
 
 |- [x] **[TASK-2.1] Equivalence Matching**
-- [ ] **[TASK-2.2] Metavariable Capture**
+- [x] **[TASK-2.2] Metavariable Capture**
   - _Description_: Collect `$A` nodes into an Environment dictionary during matching.
-  - _Status_: TODO
+  - _Status_: DONE
   - _Dependencies_: [TASK-2.1]
   - _Assignee_: Auto (unspecified-high)
   - _Effort_: 2d
   - _QA Scenario_: `cargo test -p ast_engine --test metavariable_capture_tests`
-- [ ] **[TASK-2.3] Overlap Resolution**
+- [x] **[TASK-2.3] Overlap Resolution**
   - _Description_: Implement conflict resolution to skip overlapping child matches.
-  - _Status_: TODO
+  - _Status_: DONE
   - _Dependencies_: [TASK-2.1]
   - _Assignee_: Auto (unspecified-high)
   - _Effort_: 1.5d
   - _QA Scenario_: `cargo test -p ast_engine --test overlap_resolution_tests`
-- [ ] **[TASK-3.2] Composite Rules**
+- [x] **[TASK-3.2] Composite Rules**
   - _Description_: Implement `all`, `any`, `not` logic combinations.
   - _Status_: TODO
   - _Dependencies_: [TASK-3.1, TASK-2.1]
@@ -99,7 +99,7 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _QA Scenario_: `cargo test -p ast_engine --test composite_rules_tests`
 
 ### Wave 5 (After Wave 4 Completes)
-- [ ] **[TASK-4.1] Text Interpolation**
+- [x] **[TASK-4.1] Text Interpolation**
   - _Description_: Replace `$A` in `fix` templates using the captured Environment.
   - _Status_: TODO
   - _Dependencies_: [TASK-2.2]
