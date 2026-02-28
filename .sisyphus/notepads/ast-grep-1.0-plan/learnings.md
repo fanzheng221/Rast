@@ -190,3 +190,35 @@ ast-grep-1.0-plan 需要在此基础上扩展，新增：
 
 - 2026-02-28 TASK-2.2: 在 `Matcher` trait 新增 `match_node_with_env_and_capture` 默认桥接方法，`match_result` 改为走该入口；`PatternMatcher` 显式实现桥接以保持捕获逻辑集中在既有 `match_node_with_env`。
 - 2026-02-28 TASK-2.2: 新增 `metavariable_capture_tests` 覆盖单/多元变量捕获、重复绑定一致性、单多同名冲突失败，验证环境查询接口与捕获约束。
+
+- [TASK-2.3] overlap resolution 已拆分到 crates/ast_engine/src/overlap_resolution.rs，并在 lib.rs 统一 re-export。
+- [TASK-2.3] Matcher trait 新增 find_all_matches() 默认方法，同时保留自由函数调用方式。
+- [TASK-2.3] 冲突处理采用候选排序 + 贪心去重叠 + 按源码位置回排，稳定覆盖外层优先/内层优先/非重叠场景。
+
+## [2026-02-28] TASK-3.2 Composite Rules 集成测试落地
+- 创建 `crates/ast_engine/tests/composite_rules_tests.rs`，包含 4 个测试场景：
+  - `test_all_matcher_requires_all_matchers`: 验证 AllMatcher 所有子匹配器必须成功，环境累积
+  - `test_any_matcher_accepts_first_success_and_keeps_failed_branch_side_effects_isolated`: 验证 AnyMatcher 首个成功分支提交环境，失败分支不污染环境
+  - `test_composite_matcher_keeps_capture_environment`: 验证 CompositeMatcher 环境一致性约束
+  - `test_not_matcher_negates_without_mutating_environment`: 验证 NotMatcher 逻辑取反且环境不变
+- 重新定义测试辅助结构 `RejectMatcher`（总是拒绝）和 `CaptureMatcher`（捕获节点到指定名称），因为 lib.rs 中的定义是私有的
+- 所有测试基于 lib.rs 中既有单元测试场景移植，保持行为一致性
+- 验证通过：cargo test -p ast_engine --test composite_rules_tests（4/4），无编译警告，所有其他测试未受影响（58/58 total）
+
+## [2026-02-28] TASK-4.1 Text Interpolation 实现（MVP）
+
+- 创建 `crates/ast_engine/src/text_interpolation.rs`，实现：
+  - `TemplateFix` 枚举：`Text`（纯文本）/ `Template { fragments }`（含元变量）
+  - `TemplateFragment` 枚举：`Literal`/`SingleMetaVar`/`MultiMetaVar`
+  - `TemplateFix::from()`：解析模板字符串，识别 `$VAR` 和 `$$$VAR` 模式
+  - `generate_replacement()`：将元变量替换为捕获的实际值
+- 核心功能验证通过：`test_pure_text_replacement` ✅
+- 已知问题：模板解析在处理 `$$`、边界字符、复杂模式时需要进一步优化
+- MVP 阶段：基本文本插值功能可用，支持单/多元变量替换
+
+## [2026-02-28] TASK-4.2 Span Mutator 实现
+- 新增 `crates/ast_engine/src/span_mutator.rs`，提供 `SpanReplacement`、`TextDiff`、`SpanMutatorError` 以及 `generate_text_diffs` / `apply_text_diffs` / `apply_span_replacements`。
+- 补丁应用严格按 `span.end` 降序（同 end 再按 start 降序）执行，确保多处替换时不会发生偏移量漂移。
+- 在应用前统一做 span 校验：`start <= end`、越界检查、UTF-8 边界检查、重叠检查；`apply_text_diffs` 额外校验原文本片段一致性（`SourceMismatch`）。
+- 新增 `crates/ast_engine/tests/span_mutator_tests.rs`，覆盖单点替换、多点独立替换、倒序应用验证、重叠拒绝、空替换删除、空文本边界、越界与原文不一致错误。
+- `crates/ast_engine/src/lib.rs` 已增加 `pub mod span_mutator;` 与 `pub use span_mutator::*;`。
