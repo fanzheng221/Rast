@@ -40,7 +40,7 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _Assignee_: Auto (unspecified-high)
   - _Effort_: 1d
   - _QA Scenario_: `cargo test -p ast_engine --test vue_sfc_tests`
-- [ ] **[TASK-3.1] YAML Schema Definition**
+|- [x] **[TASK-3.1] YAML Schema Definition**
   - _Description_: Define `sgconfig.yml` schema and deserialize into Rust `RuleCore` objects.
   - _Status_: TODO
   - _Dependencies_: []

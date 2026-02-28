@@ -150,3 +150,10 @@ ast-grep-1.0-plan 需要在此基础上扩展，新增：
 - 保持既有行为不变：`kind()` / `text()` / `span()` / `children()` 语义与旧实现一致，`children()` 继续覆盖 Program->Statement、Statement->Declaration/Expression、VariableDeclaration->init、CallExpression->callee/arguments、Class->MethodDefinition 等高频路径。
 - 新增集成测试 `crates/ast_engine/tests/node_trait_tests.rs`，独立验证四个核心 API、IntoAstNode 上转能力、以及 `as_program/as_statement/as_declaration/as_expression` 下转能力。
 - 验证结论：`cargo test -p ast_engine --test node_trait_tests` 4/4 通过，可作为后续 TASK-1.3 / TASK-2.1 的稳定基础层。
+
+## [2026-02-28] TASK-3.1 YAML Schema Definition
+- Extracted `RuleCore`, `Rule`, `RuleKind`, `RuleLanguage`, `PatternAtomicRule`, `RegexAtomicRule`, `KindAtomicRule`, `AllCompositeRule`, `AnyCompositeRule`, `NotCompositeRule`, and `SgConfig` from `lib.rs` into a dedicated `yaml_schema.rs` module.
+- Added `pub mod yaml_schema; pub use yaml_schema::*;` to `lib.rs` to maintain the public API.
+- Verified that `serde_yaml = "0.9"` was already present in `Cargo.toml`.
+- Created comprehensive tests in `tests/yaml_schema_tests.rs` covering pattern, regex, kind, all, any, not rules, as well as invalid mixed rules and invalid languages.
+- All tests passed successfully, confirming the schema correctly parses `sgconfig.yml` structures.
