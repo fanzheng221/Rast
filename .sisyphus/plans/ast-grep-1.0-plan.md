@@ -70,7 +70,9 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _Status_: TODO
   - _Dependencies_: [TASK-1.1, TASK-1.3]
   - _Assignee_: Auto (ultrabrain)
-  - _Effort_: 3d
+ - _Effort_: 2d
+  - _QA Scenario_: `cargo test -p ast_engine --test metavariable_capture_tests`
+|- [x] **[TASK-2.2] Metavariable Capture**
   - _QA Scenario_: `cargo test -p ast_engine --test equivalence_matching_tests`
 
 |- [x] **[TASK-2.1] Equivalence Matching**

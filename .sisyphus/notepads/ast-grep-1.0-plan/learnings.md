@@ -187,3 +187,6 @@ ast-grep-1.0-plan 需要在此基础上扩展，新增：
 - 2026-02-28 TASK-2.1: 当前仓库的匹配核心逻辑已在 lib.rs 中实现（含 PatternMatcher 回溯序列匹配、CompositeMatcher 环境克隆/提交、MatchEnvironment 单/多捕获一致性约束），本次通过新增 matcher 模块进行稳定导出并补齐独立集成测试入口。
 - 2026-02-28 TASK-2.1: 等价匹配验证重点场景可直接用 Template/Relaxed/Cst/Signature 四档严格度组合覆盖，尤其 Signature 依赖 { 截断归一化，适合函数/类签名级比较。
 - 2026-02-28 TASK-2.1: 组合匹配器失败回滚可通过“故意污染环境并返回 false”的 matcher 单测验证，确保失败分支副作用不会泄漏到外部环境。
+
+- 2026-02-28 TASK-2.2: 在 `Matcher` trait 新增 `match_node_with_env_and_capture` 默认桥接方法，`match_result` 改为走该入口；`PatternMatcher` 显式实现桥接以保持捕获逻辑集中在既有 `match_node_with_env`。
+- 2026-02-28 TASK-2.2: 新增 `metavariable_capture_tests` 覆盖单/多元变量捕获、重复绑定一致性、单多同名冲突失败，验证环境查询接口与捕获约束。
