@@ -1,9 +1,7 @@
 {
-  "active_plan": "/Users/smart/Desktop/Rast/.sisyphus/plans/rast-ast-tool-v2.md",
-  "started_at": "2026-02-25T09:05:20.053Z",
-  "session_ids": [
-    "ses_36bf44f69ffeA8ne5KQTbDqnW1"
-  ],
-  "plan_name": "rast-ast-tool-v2",
-  "agent": "atlas"
+  "active_plan": "/Users/smart/Desktop/Rast/.sisyphus/plans/ast-grep-1.0-plan.md",
+  "started_at": "2026-02-27T10:58:05.254Z",
+  "session_ids": ["ses_361405cc7ffeSLD6WgH1XgVumM"],
+  "plan_name": "ast-grep-1.0-plan",
+  "worktree_path": "/Users/smart/Desktop/Rast"
 }
