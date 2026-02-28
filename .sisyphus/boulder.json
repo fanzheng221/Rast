@@ -1,7 +1,10 @@
 {
   "active_plan": "/Users/smart/Desktop/Rast/.sisyphus/plans/ast-grep-1.0-plan.md",
   "started_at": "2026-02-27T10:58:05.254Z",
-  "session_ids": ["ses_361405cc7ffeSLD6WgH1XgVumM"],
+  "session_ids": [
+    "ses_361405cc7ffeSLD6WgH1XgVumM",
+    "ses_35e0ac210ffei6oQv4zTedG0XO"
+  ],
   "plan_name": "ast-grep-1.0-plan",
   "worktree_path": "/Users/smart/Desktop/Rast"
 }

@@ -135,3 +135,18 @@ ast-grep-1.0-plan 需要在此基础上扩展，新增：
    - 需要在 oxc 强类型 AST 之上构建统一抽象
    - $ 和 $$$ 是合法的 JS Identifier，不需要修改 oxc parser
 
+
+## [2026-02-28] Vue SFC Preprocessor Implementation
+- Implemented `VueSfcExtractor` to parse Vue Single File Components.
+- Used lightweight manual parsing to identify `<script>`, `<script setup>`, `<template>`, and `<style>` blocks without modifying the `oxc` parser.
+- Extracted only the first script block (by source order) as per the 1.0 design decision.
+- Created `VueSfcOffsetMap` to maintain a bidirectional mapping between relative offsets (within the extracted script block) and absolute offsets (in the original `.vue` file).
+- Line and column mapping is calculated directly from the original `.vue` file's `line_starts`.
+- The implementation is self-contained in `crates/ast_engine/src/vue_sfc.rs` and exported via `lib.rs`.
+- Integration tests in `crates/ast_engine/tests/vue_sfc_tests.rs` verify the extraction and offset mapping logic.
+
+## [2026-02-28] TASK-1.1 NodeTrait 抽象层模块化落地
+- 将 `NodeSpan` / `NodeTrait` / `AstNodeKind` / `AstNode` / `IntoAstNode` 从 `crates/ast_engine/src/lib.rs` 拆分到新模块 `crates/ast_engine/src/node_trait.rs`，并在 `lib.rs` 通过 `pub mod node_trait` + `pub use` 统一导出。
+- 保持既有行为不变：`kind()` / `text()` / `span()` / `children()` 语义与旧实现一致，`children()` 继续覆盖 Program->Statement、Statement->Declaration/Expression、VariableDeclaration->init、CallExpression->callee/arguments、Class->MethodDefinition 等高频路径。
+- 新增集成测试 `crates/ast_engine/tests/node_trait_tests.rs`，独立验证四个核心 API、IntoAstNode 上转能力、以及 `as_program/as_statement/as_declaration/as_expression` 下转能力。
+- 验证结论：`cargo test -p ast_engine --test node_trait_tests` 4/4 通过，可作为后续 TASK-1.3 / TASK-2.1 的稳定基础层。

@@ -82,3 +82,17 @@
 - 语言标识使用 `RuleLanguage` 枚举并开启 `rename_all = "lowercase"`，明确支持 `js/jsx/ts/tsx/javascript/typescript`，覆盖 JS/TS 常见标识。
 - 新增 `RuleCore::from_yaml` 作为统一反序列化入口，使用 `serde_yaml::from_str`，并在 `crates/ast_engine/Cargo.toml` 引入 `serde_yaml` 依赖。
 - 单测新增四类覆盖：`pattern` 解析、`regex` 解析、`kind` 解析、以及多原子键混用失败，验证 schema 解析行为与约束。
+
+
+## [2026-02-28] TASK-2.5 组合规则（all/any/not）实现决策
+
+- 在 `RuleKind` 中扩展 `All/Any/Not` 三个组合变体，并新增 `AllCompositeRule/AnyCompositeRule/NotCompositeRule`（均启用 `#[serde(deny_unknown_fields)]`），保持原子规则与组合规则都走同一 `Rule -> RuleKind` 递归模型。
+- 组合规则采用 `Vec<Rule>` 与 `Box<Rule>` 建模（`all: Vec<Rule>`, `any: Vec<Rule>`, `not: Box<Rule>`），使 YAML 能自然表达嵌套组合，且与后续规则评估阶段直接对接。
+- 基于既有 `Matcher` trait 新增 `AllMatcher/AnyMatcher/NotMatcher`：
+  - `AllMatcher`：所有子 matcher 必须成功，按顺序累积并提交环境。
+  - `AnyMatcher`：逐分支在基线环境上试配，首个成功分支提交环境，失败分支不污染环境。
+  - `NotMatcher`：在环境副本上评估内部 matcher，仅返回逻辑取反结果，不写回捕获。
+- 保留 `CompositeMatcher` 作为兼容层，内部委托到 `AllMatcher`，避免现有调用点和测试回归。
+- 单测新增两组覆盖：
+  - YAML 解析：`all/any/not` 成功解析 + 多组合键混用失败。
+  - 组合匹配：`all` 全匹配约束、`any` 分支隔离、`not` 反向匹配且环境不变。

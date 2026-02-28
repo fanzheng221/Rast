@@ -28,50 +28,9 @@ use oxc::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NodeSpan {
-    pub start: u32,
-    pub end: u32,
-}
+pub mod node_trait;
 
-impl From<oxc::span::Span> for NodeSpan {
-    fn from(value: oxc::span::Span) -> Self {
-        Self {
-            start: value.start,
-            end: value.end,
-        }
-    }
-}
-
-/// Unified AST node API for strongly-typed oxc nodes.
-pub trait NodeTrait<'a> {
-    fn kind(&self) -> &'static str;
-    fn text(&self) -> String;
-    fn span(&self) -> NodeSpan;
-    fn children(&self) -> Vec<AstNode<'a>>;
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum AstNodeKind<'a> {
-    Program(&'a oxc::ast::ast::Program<'a>),
-    Statement(&'a Statement<'a>),
-    Declaration(&'a oxc::ast::ast::Declaration<'a>),
-    Expression(&'a Expression<'a>),
-    ImportDeclaration(&'a ImportDeclaration<'a>),
-    VariableDeclaration(&'a VariableDeclaration<'a>),
-    Function(&'a oxc::ast::ast::Function<'a>),
-    Class(&'a Class<'a>),
-    MethodDefinition(&'a MethodDefinition<'a>),
-    TSInterfaceDeclaration(&'a TSInterfaceDeclaration<'a>),
-    TSTypeAliasDeclaration(&'a TSTypeAliasDeclaration<'a>),
-    CallExpression(&'a CallExpression<'a>),
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct AstNode<'a> {
-    source: &'a str,
-    kind: AstNodeKind<'a>,
-}
+pub use node_trait::{AstNode, AstNodeKind, IntoAstNode, NodeSpan, NodeTrait};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PatternNode {
@@ -128,6 +87,9 @@ pub enum RuleKind {
     Pattern(PatternAtomicRule),
     Regex(RegexAtomicRule),
     Kind(KindAtomicRule),
+    All(AllCompositeRule),
+    Any(AnyCompositeRule),
+    Not(NotCompositeRule),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -146,6 +108,24 @@ pub struct RegexAtomicRule {
 #[serde(deny_unknown_fields)]
 pub struct KindAtomicRule {
     pub kind: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AllCompositeRule {
+    pub all: Vec<Rule>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AnyCompositeRule {
+    pub any: Vec<Rule>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NotCompositeRule {
+    pub not: Box<Rule>,
 }
 
 impl RuleCore {
@@ -246,314 +226,6 @@ impl Default for ConflictResolution {
 pub struct MatchResult {
     pub span: NodeSpan,
     pub environment: MatchEnvironment,
-}
-
-impl<'a> AstNode<'a> {
-    pub fn from_program(program: &'a oxc::ast::ast::Program<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::Program(program),
-        }
-    }
-
-    pub fn from_statement(statement: &'a Statement<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::Statement(statement),
-        }
-    }
-
-    pub fn from_declaration(declaration: &'a oxc::ast::ast::Declaration<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::Declaration(declaration),
-        }
-    }
-
-    pub fn from_expression(expression: &'a Expression<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::Expression(expression),
-        }
-    }
-
-    pub fn from_import_declaration(import_declaration: &'a ImportDeclaration<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::ImportDeclaration(import_declaration),
-        }
-    }
-
-    pub fn from_variable_declaration(variable_declaration: &'a VariableDeclaration<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::VariableDeclaration(variable_declaration),
-        }
-    }
-
-    pub fn from_function(function: &'a oxc::ast::ast::Function<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::Function(function),
-        }
-    }
-
-    pub fn from_class(class: &'a Class<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::Class(class),
-        }
-    }
-
-    pub fn from_method_definition(method_definition: &'a MethodDefinition<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::MethodDefinition(method_definition),
-        }
-    }
-
-    pub fn from_ts_interface(interface_declaration: &'a TSInterfaceDeclaration<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::TSInterfaceDeclaration(interface_declaration),
-        }
-    }
-
-    pub fn from_ts_type_alias(type_alias: &'a TSTypeAliasDeclaration<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::TSTypeAliasDeclaration(type_alias),
-        }
-    }
-
-    pub fn from_call_expression(call_expression: &'a CallExpression<'a>, source: &'a str) -> Self {
-        Self {
-            source,
-            kind: AstNodeKind::CallExpression(call_expression),
-        }
-    }
-
-    pub fn as_program(&self) -> Option<&'a oxc::ast::ast::Program<'a>> {
-        match self.kind {
-            AstNodeKind::Program(node) => Some(node),
-            _ => None,
-        }
-    }
-
-    pub fn as_statement(&self) -> Option<&'a Statement<'a>> {
-        match self.kind {
-            AstNodeKind::Statement(node) => Some(node),
-            _ => None,
-        }
-    }
-
-    pub fn as_declaration(&self) -> Option<&'a oxc::ast::ast::Declaration<'a>> {
-        match self.kind {
-            AstNodeKind::Declaration(node) => Some(node),
-            _ => None,
-        }
-    }
-
-    pub fn as_expression(&self) -> Option<&'a Expression<'a>> {
-        match self.kind {
-            AstNodeKind::Expression(node) => Some(node),
-            _ => None,
-        }
-    }
-
-    fn raw_span(&self) -> oxc::span::Span {
-        match self.kind {
-            AstNodeKind::Program(node) => node.span,
-            AstNodeKind::Statement(node) => node.span(),
-            AstNodeKind::Declaration(node) => node.span(),
-            AstNodeKind::Expression(node) => node.span(),
-            AstNodeKind::ImportDeclaration(node) => node.span,
-            AstNodeKind::VariableDeclaration(node) => node.span,
-            AstNodeKind::Function(node) => node.span,
-            AstNodeKind::Class(node) => node.span,
-            AstNodeKind::MethodDefinition(node) => node.span,
-            AstNodeKind::TSInterfaceDeclaration(node) => node.span,
-            AstNodeKind::TSTypeAliasDeclaration(node) => node.span,
-            AstNodeKind::CallExpression(node) => node.span,
-        }
-    }
-
-    fn statement_kind(statement: &Statement<'_>) -> &'static str {
-        match statement {
-            Statement::ImportDeclaration(_) => "ImportDeclaration",
-            Statement::VariableDeclaration(_) => "VariableDeclaration",
-            Statement::FunctionDeclaration(_) => "FunctionDeclaration",
-            Statement::ClassDeclaration(_) => "ClassDeclaration",
-            Statement::ExpressionStatement(_) => "ExpressionStatement",
-            Statement::ExportNamedDeclaration(_) => "ExportNamedDeclaration",
-            Statement::ExportDefaultDeclaration(_) => "ExportDefaultDeclaration",
-            Statement::ExportAllDeclaration(_) => "ExportAllDeclaration",
-            Statement::TSInterfaceDeclaration(_) => "TSInterfaceDeclaration",
-            Statement::TSTypeAliasDeclaration(_) => "TSTypeAliasDeclaration",
-            _ => "Statement",
-        }
-    }
-
-    fn declaration_kind(declaration: &oxc::ast::ast::Declaration<'_>) -> &'static str {
-        match declaration {
-            oxc::ast::ast::Declaration::FunctionDeclaration(_) => "FunctionDeclaration",
-            oxc::ast::ast::Declaration::ClassDeclaration(_) => "ClassDeclaration",
-            oxc::ast::ast::Declaration::VariableDeclaration(_) => "VariableDeclaration",
-            oxc::ast::ast::Declaration::TSInterfaceDeclaration(_) => "TSInterfaceDeclaration",
-            oxc::ast::ast::Declaration::TSTypeAliasDeclaration(_) => "TSTypeAliasDeclaration",
-            _ => "Declaration",
-        }
-    }
-
-    fn expression_kind(expression: &Expression<'_>) -> &'static str {
-        match expression {
-            Expression::Identifier(_) => "Identifier",
-            Expression::CallExpression(_) => "CallExpression",
-            _ if expression.as_member_expression().is_some() => "MemberExpression",
-            _ => "Expression",
-        }
-    }
-
-    fn statement_children(statement: &'a Statement<'a>, source: &'a str) -> Vec<AstNode<'a>> {
-        match statement {
-            Statement::ImportDeclaration(node) => vec![AstNode::from_import_declaration(node, source)],
-            Statement::VariableDeclaration(node) => vec![AstNode::from_variable_declaration(node, source)],
-            Statement::FunctionDeclaration(node) => vec![AstNode::from_function(node, source)],
-            Statement::ClassDeclaration(node) => vec![AstNode::from_class(node, source)],
-            Statement::ExpressionStatement(node) => {
-                vec![AstNode::from_expression(&node.expression, source)]
-            }
-            Statement::ExportNamedDeclaration(node) => {
-                let mut children = Vec::new();
-                if let Some(declaration) = &node.declaration {
-                    children.push(AstNode::from_declaration(declaration, source));
-                }
-                children
-            }
-            Statement::ExportDefaultDeclaration(node) => match &node.declaration {
-                ExportDefaultDeclarationKind::FunctionDeclaration(function) => {
-                    vec![AstNode::from_function(function, source)]
-                }
-                ExportDefaultDeclarationKind::ClassDeclaration(class) => {
-                    vec![AstNode::from_class(class, source)]
-                }
-                ExportDefaultDeclarationKind::TSInterfaceDeclaration(interface_decl) => {
-                    vec![AstNode::from_ts_interface(interface_decl, source)]
-                }
-                _ => Vec::new(),
-            },
-            Statement::TSInterfaceDeclaration(interface_decl) => {
-                vec![AstNode::from_ts_interface(interface_decl, source)]
-            }
-            Statement::TSTypeAliasDeclaration(type_alias) => {
-                vec![AstNode::from_ts_type_alias(type_alias, source)]
-            }
-            _ => Vec::new(),
-        }
-    }
-
-    fn declaration_children(declaration: &'a oxc::ast::ast::Declaration<'a>, source: &'a str) -> Vec<AstNode<'a>> {
-        match declaration {
-            oxc::ast::ast::Declaration::VariableDeclaration(node) => {
-                vec![AstNode::from_variable_declaration(node, source)]
-            }
-            oxc::ast::ast::Declaration::FunctionDeclaration(node) => {
-                vec![AstNode::from_function(node, source)]
-            }
-            oxc::ast::ast::Declaration::ClassDeclaration(node) => {
-                vec![AstNode::from_class(node, source)]
-            }
-            oxc::ast::ast::Declaration::TSInterfaceDeclaration(node) => {
-                vec![AstNode::from_ts_interface(node, source)]
-            }
-            oxc::ast::ast::Declaration::TSTypeAliasDeclaration(node) => {
-                vec![AstNode::from_ts_type_alias(node, source)]
-            }
-            _ => Vec::new(),
-        }
-    }
-
-    fn expression_children(expression: &'a Expression<'a>, source: &'a str) -> Vec<AstNode<'a>> {
-        match expression {
-            Expression::CallExpression(node) => vec![AstNode::from_call_expression(node, source)],
-            _ => Vec::new(),
-        }
-    }
-}
-
-impl<'a> NodeTrait<'a> for AstNode<'a> {
-    fn kind(&self) -> &'static str {
-        match self.kind {
-            AstNodeKind::Program(_) => "Program",
-            AstNodeKind::Statement(node) => AstNode::statement_kind(node),
-            AstNodeKind::Declaration(node) => AstNode::declaration_kind(node),
-            AstNodeKind::Expression(node) => AstNode::expression_kind(node),
-            AstNodeKind::ImportDeclaration(_) => "ImportDeclaration",
-            AstNodeKind::VariableDeclaration(_) => "VariableDeclaration",
-            AstNodeKind::Function(_) => "Function",
-            AstNodeKind::Class(_) => "Class",
-            AstNodeKind::MethodDefinition(_) => "MethodDefinition",
-            AstNodeKind::TSInterfaceDeclaration(_) => "TSInterfaceDeclaration",
-            AstNodeKind::TSTypeAliasDeclaration(_) => "TSTypeAliasDeclaration",
-            AstNodeKind::CallExpression(_) => "CallExpression",
-        }
-    }
-
-    fn text(&self) -> String {
-        self.raw_span().source_text(self.source).to_string()
-    }
-
-    fn span(&self) -> NodeSpan {
-        self.raw_span().into()
-    }
-
-    fn children(&self) -> Vec<AstNode<'a>> {
-        match self.kind {
-            AstNodeKind::Program(node) => node
-                .body
-                .iter()
-                .map(|statement| AstNode::from_statement(statement, self.source))
-                .collect(),
-            AstNodeKind::Statement(node) => AstNode::statement_children(node, self.source),
-            AstNodeKind::Declaration(node) => AstNode::declaration_children(node, self.source),
-            AstNodeKind::Expression(node) => AstNode::expression_children(node, self.source),
-            AstNodeKind::ImportDeclaration(_) => Vec::new(),
-            AstNodeKind::VariableDeclaration(node) => node
-                .declarations
-                .iter()
-                .filter_map(|declarator| declarator.init.as_ref())
-                .map(|expression| AstNode::from_expression(expression, self.source))
-                .collect(),
-            AstNodeKind::Function(_) => Vec::new(),
-            AstNodeKind::Class(node) => node
-                .body
-                .body
-                .iter()
-                .filter_map(|element| match element {
-                    oxc::ast::ast::ClassElement::MethodDefinition(method) => {
-                        Some(AstNode::from_method_definition(method, self.source))
-                    }
-                    _ => None,
-                })
-                .collect(),
-            AstNodeKind::MethodDefinition(node) => {
-                vec![AstNode::from_function(&node.value, self.source)]
-            }
-            AstNodeKind::TSInterfaceDeclaration(_) => Vec::new(),
-            AstNodeKind::TSTypeAliasDeclaration(_) => Vec::new(),
-            AstNodeKind::CallExpression(node) => {
-                let mut children = Vec::new();
-                children.push(AstNode::from_expression(&node.callee, self.source));
-                children.extend(
-                    node.arguments
-                        .iter()
-                        .filter_map(|argument| argument.as_expression())
-                        .map(|expression| AstNode::from_expression(expression, self.source)),
-                );
-                children
-            }
-        }
-    }
 }
 
 fn is_valid_meta_capture_name(name: &str) -> bool {
@@ -1011,11 +683,11 @@ impl Matcher for PatternMatcher {
 }
 
 #[derive(Default)]
-pub struct CompositeMatcher {
+pub struct AllMatcher {
     matchers: Vec<Box<dyn Matcher>>,
 }
 
-impl CompositeMatcher {
+impl AllMatcher {
     pub fn new() -> Self {
         Self::default()
     }
@@ -1025,7 +697,7 @@ impl CompositeMatcher {
     }
 }
 
-impl Matcher for CompositeMatcher {
+impl Matcher for AllMatcher {
     fn match_node_with_env<'a>(
         &self,
         target: AstNode<'a>,
@@ -1040,6 +712,92 @@ impl Matcher for CompositeMatcher {
         }
         *env = current;
         true
+    }
+}
+
+#[derive(Default)]
+pub struct AnyMatcher {
+    matchers: Vec<Box<dyn Matcher>>,
+}
+
+impl AnyMatcher {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn push<M: Matcher + 'static>(&mut self, matcher: M) {
+        self.matchers.push(Box::new(matcher));
+    }
+}
+
+impl Matcher for AnyMatcher {
+    fn match_node_with_env<'a>(
+        &self,
+        target: AstNode<'a>,
+        pattern: &PatternNode,
+        env: &mut MatchEnvironment,
+    ) -> bool {
+        let baseline = env.clone();
+        for matcher in &self.matchers {
+            let mut candidate = baseline.clone();
+            if matcher.match_node_with_env(target, pattern, &mut candidate) {
+                *env = candidate;
+                return true;
+            }
+        }
+        false
+    }
+}
+
+pub struct NotMatcher {
+    matcher: Box<dyn Matcher>,
+}
+
+impl NotMatcher {
+    pub fn new<M: Matcher + 'static>(matcher: M) -> Self {
+        Self {
+            matcher: Box::new(matcher),
+        }
+    }
+}
+
+impl Matcher for NotMatcher {
+    fn match_node_with_env<'a>(
+        &self,
+        target: AstNode<'a>,
+        pattern: &PatternNode,
+        env: &mut MatchEnvironment,
+    ) -> bool {
+        let mut candidate = env.clone();
+        !self
+            .matcher
+            .match_node_with_env(target, pattern, &mut candidate)
+    }
+}
+
+#[derive(Default)]
+pub struct CompositeMatcher {
+    all: AllMatcher,
+}
+
+impl CompositeMatcher {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn push<M: Matcher + 'static>(&mut self, matcher: M) {
+        self.all.push(matcher);
+    }
+}
+
+impl Matcher for CompositeMatcher {
+    fn match_node_with_env<'a>(
+        &self,
+        target: AstNode<'a>,
+        pattern: &PatternNode,
+        env: &mut MatchEnvironment,
+    ) -> bool {
+        self.all.match_node_with_env(target, pattern, env)
     }
 }
 
@@ -1087,34 +845,6 @@ fn normalize_signature_text(text: &str) -> String {
         normalized[..idx].to_string()
     } else {
         normalized
-    }
-}
-
-pub trait IntoAstNode<'a> {
-    fn as_node(&'a self, source: &'a str) -> AstNode<'a>;
-}
-
-impl<'a> IntoAstNode<'a> for oxc::ast::ast::Program<'a> {
-    fn as_node(&'a self, source: &'a str) -> AstNode<'a> {
-        AstNode::from_program(self, source)
-    }
-}
-
-impl<'a> IntoAstNode<'a> for Statement<'a> {
-    fn as_node(&'a self, source: &'a str) -> AstNode<'a> {
-        AstNode::from_statement(self, source)
-    }
-}
-
-impl<'a> IntoAstNode<'a> for oxc::ast::ast::Declaration<'a> {
-    fn as_node(&'a self, source: &'a str) -> AstNode<'a> {
-        AstNode::from_declaration(self, source)
-    }
-}
-
-impl<'a> IntoAstNode<'a> for Expression<'a> {
-    fn as_node(&'a self, source: &'a str) -> AstNode<'a> {
-        AstNode::from_expression(self, source)
     }
 }
 
@@ -1199,259 +929,8 @@ pub struct AnalysisResult {
     pub file_structure: FileStructure,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VueSfcScriptKind {
-    Script,
-    ScriptSetup,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct VueSfcBlockPresence {
-    pub has_script: bool,
-    pub has_script_setup: bool,
-    pub has_template: bool,
-    pub has_style: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VueSfcOffsetMap {
-    script_span: NodeSpan,
-    relative_to_absolute_offsets: Vec<u32>,
-    line_starts: Vec<usize>,
-}
-
-impl VueSfcOffsetMap {
-    fn new(script_span: NodeSpan, source: &str) -> Self {
-        let start = script_span.start;
-        let end = script_span.end;
-        let relative_to_absolute_offsets = (start..=end).collect::<Vec<_>>();
-        Self {
-            script_span,
-            relative_to_absolute_offsets,
-            line_starts: compute_line_starts(source),
-        }
-    }
-
-    pub fn script_span(&self) -> NodeSpan {
-        self.script_span
-    }
-
-    pub fn relative_to_absolute_offset(&self, relative_offset: u32) -> Option<u32> {
-        self.relative_to_absolute_offsets
-            .get(relative_offset as usize)
-            .copied()
-    }
-
-    pub fn absolute_to_relative_offset(&self, absolute_offset: u32) -> Option<u32> {
-        if absolute_offset < self.script_span.start || absolute_offset > self.script_span.end {
-            return None;
-        }
-        Some(absolute_offset - self.script_span.start)
-    }
-
-    pub fn relative_to_absolute_span(&self, relative_span: NodeSpan) -> Option<NodeSpan> {
-        let start = self.relative_to_absolute_offset(relative_span.start)?;
-        let end = self.relative_to_absolute_offset(relative_span.end)?;
-        Some(NodeSpan { start, end })
-    }
-
-    pub fn absolute_to_relative_span(&self, absolute_span: NodeSpan) -> Option<NodeSpan> {
-        let start = self.absolute_to_relative_offset(absolute_span.start)?;
-        let end = self.absolute_to_relative_offset(absolute_span.end)?;
-        Some(NodeSpan { start, end })
-    }
-
-    pub fn absolute_offset_to_line_col(&self, absolute_offset: u32) -> (usize, usize) {
-        offset_to_line_col(absolute_offset as usize, &self.line_starts)
-    }
-
-    pub fn relative_offset_to_line_col(&self, relative_offset: u32) -> Option<(usize, usize)> {
-        let absolute = self.relative_to_absolute_offset(relative_offset)?;
-        Some(self.absolute_offset_to_line_col(absolute))
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExtractedScriptBlock<'a> {
-    pub content: &'a str,
-    pub kind: VueSfcScriptKind,
-    pub offset_map: VueSfcOffsetMap,
-    pub block_presence: VueSfcBlockPresence,
-}
-
-#[derive(Debug, Clone)]
-pub struct VueSfcExtractor<'a> {
-    source: &'a str,
-    block_presence: VueSfcBlockPresence,
-}
-
-impl<'a> VueSfcExtractor<'a> {
-    pub fn new(source: &'a str) -> Self {
-        let script_blocks = collect_sfc_script_blocks(source);
-        let has_script = script_blocks
-            .iter()
-            .any(|block| block.kind == VueSfcScriptKind::Script);
-        let has_script_setup = script_blocks
-            .iter()
-            .any(|block| block.kind == VueSfcScriptKind::ScriptSetup);
-        let has_template = find_sfc_block(source, "template", 0).is_some();
-        let has_style = find_sfc_block(source, "style", 0).is_some();
-
-        Self {
-            source,
-            block_presence: VueSfcBlockPresence {
-                has_script,
-                has_script_setup,
-                has_template,
-                has_style,
-            },
-        }
-    }
-
-    pub fn block_presence(&self) -> VueSfcBlockPresence {
-        self.block_presence
-    }
-
-    pub fn extract_script_block(&self) -> Option<ExtractedScriptBlock<'a>> {
-        let block = collect_sfc_script_blocks(self.source).into_iter().next()?;
-        let script_span = NodeSpan {
-            start: block.content_start as u32,
-            end: block.content_end as u32,
-        };
-        let content = &self.source[block.content_start..block.content_end];
-
-        Some(ExtractedScriptBlock {
-            content,
-            kind: block.kind,
-            offset_map: VueSfcOffsetMap::new(script_span, self.source),
-            block_presence: self.block_presence,
-        })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct SfcBlockMatch {
-    content_start: usize,
-    content_end: usize,
-    kind: VueSfcScriptKind,
-}
-
-fn collect_sfc_script_blocks(source: &str) -> Vec<SfcBlockMatch> {
-    let mut blocks = Vec::new();
-    let mut cursor = 0usize;
-    while let Some(block) = find_sfc_block(source, "script", cursor) {
-        let next_cursor = block.content_end.saturating_add(1);
-        blocks.push(block);
-        if next_cursor > source.len() {
-            break;
-        }
-        cursor = next_cursor;
-    }
-    blocks
-}
-
-fn find_sfc_block(source: &str, tag_name: &str, from_offset: usize) -> Option<SfcBlockMatch> {
-    let lower_source = source.to_ascii_lowercase();
-    let lower_tag_name = tag_name.to_ascii_lowercase();
-    let open_tag_prefix = format!("<{}", lower_tag_name);
-    let close_tag = format!("</{}>", lower_tag_name);
-
-    let mut cursor = from_offset;
-    while cursor < lower_source.len() {
-        let open_start = lower_source[cursor..].find(&open_tag_prefix)? + cursor;
-        let boundary_idx = open_start + open_tag_prefix.len();
-        if !is_sfc_tag_boundary(lower_source.as_bytes().get(boundary_idx).copied()) {
-            cursor = boundary_idx;
-            continue;
-        }
-
-        let open_end = lower_source[boundary_idx..].find('>')? + boundary_idx;
-        let content_start = open_end + 1;
-        let close_start = lower_source[content_start..].find(&close_tag)? + content_start;
-        let open_tag_content = &source[open_start..=open_end];
-
-        let kind = if lower_tag_name == "script" && tag_has_attribute(open_tag_content, "setup") {
-            VueSfcScriptKind::ScriptSetup
-        } else {
-            VueSfcScriptKind::Script
-        };
-
-        return Some(SfcBlockMatch {
-            content_start,
-            content_end: close_start,
-            kind,
-        });
-    }
-    None
-}
-
-fn is_sfc_tag_boundary(ch: Option<u8>) -> bool {
-    matches!(ch, None | Some(b'>') | Some(b'/') | Some(b' ') | Some(b'\n') | Some(b'\r') | Some(b'\t'))
-}
-
-fn tag_has_attribute(open_tag: &str, attr_name: &str) -> bool {
-    let lower = open_tag.to_ascii_lowercase();
-    let bytes = lower.as_bytes();
-    let mut idx = 1usize;
-
-    while idx < bytes.len() && bytes[idx].is_ascii_alphabetic() {
-        idx += 1;
-    }
-
-    while idx < bytes.len() {
-        while idx < bytes.len() && bytes[idx].is_ascii_whitespace() {
-            idx += 1;
-        }
-        if idx >= bytes.len() || bytes[idx] == b'>' || bytes[idx] == b'/' {
-            break;
-        }
-
-        let attr_start = idx;
-        while idx < bytes.len()
-            && !bytes[idx].is_ascii_whitespace()
-            && bytes[idx] != b'='
-            && bytes[idx] != b'>'
-            && bytes[idx] != b'/'
-        {
-            idx += 1;
-        }
-
-        if &lower[attr_start..idx] == attr_name {
-            return true;
-        }
-
-        while idx < bytes.len() && bytes[idx].is_ascii_whitespace() {
-            idx += 1;
-        }
-
-        if idx < bytes.len() && bytes[idx] == b'=' {
-            idx += 1;
-            while idx < bytes.len() && bytes[idx].is_ascii_whitespace() {
-                idx += 1;
-            }
-
-            if idx < bytes.len() && (bytes[idx] == b'"' || bytes[idx] == b'\'') {
-                let quote = bytes[idx];
-                idx += 1;
-                while idx < bytes.len() && bytes[idx] != quote {
-                    idx += 1;
-                }
-                if idx < bytes.len() {
-                    idx += 1;
-                }
-            } else {
-                while idx < bytes.len()
-                    && !bytes[idx].is_ascii_whitespace()
-                    && bytes[idx] != b'>'
-                {
-                    idx += 1;
-                }
-            }
-        }
-    }
-
-    false
-}
+pub mod vue_sfc;
+pub use vue_sfc::*;
 
 #[derive(Debug, Default)]
 struct ProjectGraphState {
@@ -2229,7 +1708,7 @@ fn resolve_import_candidates(file_path: &str, import_source: &str) -> Vec<String
     .to_vec()
 }
 
-fn compute_line_starts(source: &str) -> Vec<usize> {
+pub fn compute_line_starts(source: &str) -> Vec<usize> {
     let mut starts = vec![0usize];
     for (index, byte) in source.as_bytes().iter().enumerate() {
         if *byte == b'\n' {
@@ -2239,7 +1718,7 @@ fn compute_line_starts(source: &str) -> Vec<usize> {
     starts
 }
 
-fn offset_to_line_col(offset: usize, line_starts: &[usize]) -> (usize, usize) {
+pub fn offset_to_line_col(offset: usize, line_starts: &[usize]) -> (usize, usize) {
     let line_idx = line_starts
         .partition_point(|start| *start <= offset)
         .saturating_sub(1);
@@ -2382,6 +1861,69 @@ rule:
     }
 
     #[test]
+    fn test_rule_core_yaml_all_rule() {
+        let yaml = r#"
+id: no-console
+language: ts
+rule:
+  all:
+    - pattern: console.log($$$ARGS)
+    - kind: CallExpression
+"#;
+
+        let parsed = RuleCore::from_yaml(yaml).unwrap();
+        match parsed.rule.core {
+            RuleKind::All(rule) => {
+                assert_eq!(rule.all.len(), 2);
+                assert!(matches!(rule.all[0].core, RuleKind::Pattern(_)));
+                assert!(matches!(rule.all[1].core, RuleKind::Kind(_)));
+            }
+            _ => panic!("expected all composite rule"),
+        }
+    }
+
+    #[test]
+    fn test_rule_core_yaml_any_rule() {
+        let yaml = r#"
+id: avoid-debug
+language: ts
+rule:
+  any:
+    - regex: "\\bdebugger\\b"
+    - pattern: console.debug($$$ARGS)
+"#;
+
+        let parsed = RuleCore::from_yaml(yaml).unwrap();
+        match parsed.rule.core {
+            RuleKind::Any(rule) => {
+                assert_eq!(rule.any.len(), 2);
+                assert!(matches!(rule.any[0].core, RuleKind::Regex(_)));
+                assert!(matches!(rule.any[1].core, RuleKind::Pattern(_)));
+            }
+            _ => panic!("expected any composite rule"),
+        }
+    }
+
+    #[test]
+    fn test_rule_core_yaml_not_rule() {
+        let yaml = r#"
+id: non-call
+language: js
+rule:
+  not:
+    kind: CallExpression
+"#;
+
+        let parsed = RuleCore::from_yaml(yaml).unwrap();
+        match parsed.rule.core {
+            RuleKind::Not(rule) => {
+                assert!(matches!(rule.not.core, RuleKind::Kind(_)));
+            }
+            _ => panic!("expected not composite rule"),
+        }
+    }
+
+    #[test]
     fn test_rule_core_yaml_rejects_multiple_atomic_keys() {
         let yaml = r#"
 id: invalid-rule
@@ -2389,6 +1931,22 @@ language: tsx
 rule:
   pattern: foo($A)
   kind: CallExpression
+"#;
+
+        let parsed = RuleCore::from_yaml(yaml);
+        assert!(parsed.is_err());
+    }
+
+    #[test]
+    fn test_rule_core_yaml_rejects_multiple_composite_keys() {
+        let yaml = r#"
+id: invalid-composite
+language: ts
+rule:
+  all:
+    - kind: CallExpression
+  any:
+    - kind: FunctionDeclaration
 "#;
 
         let parsed = RuleCore::from_yaml(yaml);
@@ -2870,6 +2428,103 @@ export function run() {
     }
 
     #[test]
+    fn test_all_matcher_requires_all_matchers() {
+        let allocator = Allocator::default();
+        let target_source = "const value = fn(answer);";
+        let pattern_source = "const value = fn($A);";
+        let source_type = SourceType::from_path(Path::new("inline.ts")).unwrap();
+
+        let parsed_target = Parser::new(&allocator, target_source, source_type).parse();
+        let parsed_pattern = Parser::new(&allocator, pattern_source, source_type).parse();
+
+        let target = parsed_target.program.as_node(target_source);
+        let pattern_root = parsed_pattern.program.as_node(pattern_source);
+        let pattern = to_pattern_ast(pattern_root);
+
+        let mut matcher = AllMatcher::new();
+        matcher.push(PatternMatcher::default());
+        matcher.push(CaptureMatcher { name: "MARK" });
+        let env = matcher
+            .match_node(target, &pattern)
+            .expect("all matcher should match when all children match");
+
+        assert!(env.has_single_capture("A"));
+        assert!(env.has_single_capture("MARK"));
+
+        let mut failing_matcher = AllMatcher::new();
+        failing_matcher.push(PatternMatcher::default());
+        failing_matcher.push(RejectMatcher);
+        assert!(failing_matcher.match_node(target, &pattern).is_none());
+    }
+
+    #[test]
+    fn test_any_matcher_accepts_first_success_and_keeps_failed_branch_side_effects_isolated() {
+        let allocator = Allocator::default();
+        let target_source = "const value = fn(answer);";
+        let pattern_source = "const value = fn($A);";
+        let source_type = SourceType::from_path(Path::new("inline.ts")).unwrap();
+
+        let parsed_target = Parser::new(&allocator, target_source, source_type).parse();
+        let parsed_pattern = Parser::new(&allocator, pattern_source, source_type).parse();
+
+        let target = parsed_target.program.as_node(target_source);
+        let pattern_root = parsed_pattern.program.as_node(pattern_source);
+        let pattern = to_pattern_ast(pattern_root);
+
+        let mut matcher = AnyMatcher::new();
+        matcher.push(RejectMatcher);
+        matcher.push(PatternMatcher::default());
+
+        let env = matcher
+            .match_node(target, &pattern)
+            .expect("any matcher should match when one child matches");
+        assert!(env.has_single_capture("A"));
+
+        let mut baseline = MatchEnvironment::default();
+        baseline.single_captures.insert(
+            "PRE".to_string(),
+            CapturedNode {
+                kind: "Preset".to_string(),
+                text: "preset".to_string(),
+                span: NodeSpan { start: 0, end: 0 },
+            },
+        );
+        let mut failing_any = AnyMatcher::new();
+        failing_any.push(RejectMatcher);
+        failing_any.push(RejectMatcher);
+
+        let before = baseline.clone();
+        assert!(!failing_any.match_node_with_env(target, &pattern, &mut baseline));
+        assert_eq!(baseline, before);
+    }
+
+    #[test]
+    fn test_not_matcher_negates_without_mutating_environment() {
+        let allocator = Allocator::default();
+        let target_source = "const value = fn(answer);";
+        let pattern_source = "const value = fn($A);";
+        let source_type = SourceType::from_path(Path::new("inline.ts")).unwrap();
+
+        let parsed_target = Parser::new(&allocator, target_source, source_type).parse();
+        let parsed_pattern = Parser::new(&allocator, pattern_source, source_type).parse();
+
+        let target = parsed_target.program.as_node(target_source);
+        let pattern_root = parsed_pattern.program.as_node(pattern_source);
+        let pattern = to_pattern_ast(pattern_root);
+
+        let before = MatchEnvironment::default();
+        let mut env = before.clone();
+        let not_pattern = NotMatcher::new(PatternMatcher::default());
+        assert!(!not_pattern.match_node_with_env(target, &pattern, &mut env));
+        assert_eq!(env, before);
+
+        let mut env = MatchEnvironment::default();
+        let not_reject = NotMatcher::new(RejectMatcher);
+        assert!(not_reject.match_node_with_env(target, &pattern, &mut env));
+        assert!(!env.has_single_capture("A"));
+    }
+
+    #[test]
     fn test_find_all_matches_prefers_outer_overlap() {
         let allocator = Allocator::default();
         let target_source = "const value = fn(fn(a));";
@@ -2969,79 +2624,34 @@ export function run() {
         }));
     }
 
-    #[test]
-    fn test_vue_sfc_extract_script_setup_and_offset_map() {
-        let source = r#"<template>
-  <div>{{ msg }}</div>
-</template>
-<script setup lang="ts">
-const answer = 42;
-</script>
-<style scoped>
-.app { color: red; }
-</style>
-"#;
 
-        let extractor = VueSfcExtractor::new(source);
-        let block = extractor.extract_script_block().unwrap();
-        assert_eq!(block.kind, VueSfcScriptKind::ScriptSetup);
-        assert!(block.content.contains("const answer = 42;"));
-        assert!(block.block_presence.has_template);
-        assert!(block.block_presence.has_style);
-        assert!(block.block_presence.has_script_setup);
+    struct RejectMatcher;
 
-        let rel = block.content.find("answer").unwrap() as u32;
-        let abs = block.offset_map.relative_to_absolute_offset(rel).unwrap();
-        assert_eq!(&source[abs as usize..abs as usize + 6], "answer");
-        assert_eq!(block.offset_map.absolute_to_relative_offset(abs), Some(rel));
-
-        let rel_span = NodeSpan {
-            start: rel,
-            end: rel + 6,
-        };
-        let abs_span = block.offset_map.relative_to_absolute_span(rel_span).unwrap();
-        assert_eq!(&source[abs_span.start as usize..abs_span.end as usize], "answer");
-        assert_eq!(
-            block.offset_map.absolute_to_relative_span(abs_span),
-            Some(rel_span)
-        );
-
-        let expected = offset_to_line_col(abs as usize, &compute_line_starts(source));
-        assert_eq!(block.offset_map.relative_offset_to_line_col(rel), Some(expected));
+    impl Matcher for RejectMatcher {
+        fn match_node_with_env<'a>(
+            &self,
+            _target: AstNode<'a>,
+            _pattern: &PatternNode,
+            _env: &mut MatchEnvironment,
+        ) -> bool {
+            false
+        }
     }
 
-    #[test]
-    fn test_vue_sfc_extract_normal_script_and_presence() {
-        let source = r#"<script lang="ts">
-export const value = 1;
-</script>
-"#;
-
-        let extractor = VueSfcExtractor::new(source);
-        let block = extractor.extract_script_block().unwrap();
-        assert_eq!(block.kind, VueSfcScriptKind::Script);
-        assert!(block.content.contains("export const value = 1;"));
-
-        let presence = extractor.block_presence();
-        assert!(presence.has_script);
-        assert!(!presence.has_script_setup);
-        assert!(!presence.has_template);
-        assert!(!presence.has_style);
+    struct CaptureMatcher {
+        name: &'static str,
     }
 
-    #[test]
-    fn test_vue_sfc_identify_template_style_without_script() {
-        let source = r#"<template><div>Only template</div></template>
-<style>.only { color: blue; }</style>
-"#;
-
-        let extractor = VueSfcExtractor::new(source);
-        assert!(extractor.extract_script_block().is_none());
-
-        let presence = extractor.block_presence();
-        assert!(!presence.has_script);
-        assert!(!presence.has_script_setup);
-        assert!(presence.has_template);
-        assert!(presence.has_style);
+    impl Matcher for CaptureMatcher {
+        fn match_node_with_env<'a>(
+            &self,
+            target: AstNode<'a>,
+            _pattern: &PatternNode,
+            env: &mut MatchEnvironment,
+        ) -> bool {
+            env.single_captures
+                .insert(self.name.to_string(), CapturedNode::from(target));
+            true
+        }
     }
 }
