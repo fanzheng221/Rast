@@ -28,6 +28,7 @@ use oxc::{
 };
 use serde::{Deserialize, Serialize};
 
+pub mod matcher;
 pub mod node_trait;
 pub mod relational_rules;
 pub mod wildcard_parsing;

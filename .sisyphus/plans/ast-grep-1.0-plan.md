@@ -73,7 +73,7 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _Effort_: 3d
   - _QA Scenario_: `cargo test -p ast_engine --test equivalence_matching_tests`
 
-### Wave 4 (After Wave 3 Completes)
+|- [x] **[TASK-2.1] Equivalence Matching**
 - [ ] **[TASK-2.2] Metavariable Capture**
   - _Description_: Collect `$A` nodes into an Environment dictionary during matching.
   - _Status_: TODO
