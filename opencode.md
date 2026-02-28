@@ -12,10 +12,8 @@
 
 ## 必须遵守
 
-1. 文件读取/修改仅使用 `serena_*` 工具。
-2. 禁止使用原生 `read`、`edit`、`write`、`apply_patch` 及 desktop-commander MCP。
-3. 优先符号级操作：`serena_find_symbol`、`serena_replace_symbol_body`、`serena_insert_*`。
-4. 无法符号定位时使用 `serena_replace_content` 做文件级正则修改。
+1. 优先符号级操作：`serena_find_symbol`、`serena_replace_symbol_body`、`serena_insert_*`。
+2. 无法符号定位时使用 `serena_replace_content` 做文件级正则修改。
 
 ## 推荐读取顺序
 
@@ -23,11 +21,6 @@
 2. 语义定位：`serena_get_symbols_overview`、`serena_find_symbol`、`serena_find_referencing_symbols`
 3. 跨文件搜索：`serena_search_for_pattern`
 4. 仅在需要完整行内容时使用 `serena_read_file`
-
-## 会话初始化
-
-1. 先确认项目已激活并检查 onboarding 状态。
-2. 开始开发前，按需读取 memories：`project_overview`、`style_conventions`、`suggested_commands`、`task_completion_checklist`。
 
 ## Memory 同步（架构/规范变更时）
 
@@ -41,7 +34,6 @@
 
 ## 1. 禁用一切原生操作工具
 **在任何 Session、任何 Agent (包含 Orchestrator、子 Agent、并行任务) 中，绝对禁止：**
-- ❌ 使用 `read` / `edit` / `write` / `apply_patch`
 - ❌ 使用 `glob` / `grep` / `rg` / `find`
 - ❌ 使用 `ast_grep_search` / `ast_grep_replace`
 - ❌ 使用 `bash` 来读写或搜索文件 (`cat`, `sed`, `awk` 等)
@@ -54,7 +46,6 @@
 1. 禁用原生工具：严禁使用默认的 read, edit, write, glob, grep, ast_grep 工具。
 2. 强制 Serena 工具链：
    - 文件/内容搜索：必须且只能使用 `serena_find_file`, `serena_search_for_pattern`
-   - 文件读取：必须且只能使用 `serena_read_file`
    - 代码/符号定位：必须且只能使用 `serena_get_symbols_overview`, `serena_find_symbol`
    - 代码修改：必须且只能使用 `serena_replace_content`, `serena_replace_symbol_body`, `serena_insert_after_symbol` 等
 3. 读取记忆：任务开始前，必须先使用 `serena_read_memory` 读取当前环境的规范记忆 (如 style_conventions, project_overview)。

@@ -108,7 +108,7 @@ Upgrading the Rast MVP to a 1.0 architecture with ast-grep parity. This includes
   - _QA Scenario_: `cargo test -p ast_engine --test text_interpolation_tests`
 
 ### Wave 6 (After Wave 5 Completes)
-- [ ] **[TASK-4.2] Span Mutator**
+- [x] **[TASK-4.2] Span Mutator**
   - _Description_: Generate and apply text diffs using Spans. MUST apply patches in reverse order (descending span end index) to prevent offset shifting.
   - _Status_: TODO
   - _Dependencies_: [TASK-4.1]

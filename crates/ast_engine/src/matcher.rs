@@ -1,5 +1,8 @@
 pub use crate::{
-    CapturedNode, CompositeMatcher, MatchEnvironment, MatchStrictness, Matcher, PatternMatcher,
+    find_all_matches, AllMatcher, AnyMatcher, CapturedNode, CompositeMatcher,
+    ConflictResolution, FindAllMatches, MatchEnvironment, MatchOutcome, MatchStrictness,
+    Matcher, NotMatcher, PatternMatcher,
 };
 
-pub type MatchResult = crate::MatchOutcome;
+pub type MatchResult = MatchOutcome;
+pub type OverlapMatchResult = crate::MatchResult;
