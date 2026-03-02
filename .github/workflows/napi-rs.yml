@@ -1,21 +1,29 @@
-name: Build NAPI Binaries
+name: NAPI CI
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: napi-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  build-bindings:
+    name: Build ${{ matrix.settings.target }}
     strategy:
+      fail-fast: false
       matrix:
         settings:
-          - host: macos-latest
-            target: aarch64-apple-darwin
-          - host: macos-latest
+          - host: macos-13
             target: x86_64-apple-darwin
+          - host: macos-14
+            target: aarch64-apple-darwin
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
           - host: windows-latest
@@ -34,20 +42,13 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.settings.target }}
-      - name: Cache dependencies
-        uses: actions/cache@v4
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.pnpm-store
-            ~/.cargo/registry
-            target
-          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          workspaces: |
+            . -> target
+            packages/bindings -> target
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build bindings
-        run: pnpm --filter bindings run build --release
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.settings.target }}
-          path: packages/bindings/*.node
+        run: pnpm --filter @rast/bindings exec napi build --release --platform --target ${{ matrix.settings.target }}

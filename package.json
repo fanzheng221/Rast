@@ -14,7 +14,10 @@
     "verify:vue": "pnpm build && node scripts/verify-vue-offsets.js",
     "verify:napi-mcp": "pnpm build && node scripts/verify-napi-mcp-e2e.js",
     "verify:all": "pnpm verify:benchmark && pnpm verify:vue && pnpm verify:napi-mcp",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
   },
   "keywords": [
     "ast",
@@ -27,6 +30,7 @@
   "author": "Rast Contributors",
   "license": "MIT",
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@modelcontextprotocol/sdk": "^1.0.4",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
