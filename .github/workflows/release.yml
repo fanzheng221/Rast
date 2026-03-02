@@ -21,24 +21,46 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_tag: ${{ steps.meta.outputs.release_tag }}
-      release_ref: ${{ steps.meta.outputs.release_ref }}
+      release_sha: ${{ steps.meta.outputs.release_sha }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Resolve release metadata
         id: meta
         run: |
           set -euo pipefail
+          REMOTE_REF=""
+          RELEASE_SHA=""
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ inputs.tag }}"
             if [ -z "$TAG" ]; then
               echo "Input tag is required for workflow_dispatch." >&2
               exit 1
             fi
-            echo "release_tag=$TAG" >> "$GITHUB_OUTPUT"
-            echo "release_ref=refs/tags/$TAG" >> "$GITHUB_OUTPUT"
+            REMOTE_REF="refs/tags/$TAG"
+
+            for i in {1..12}; do
+              RELEASE_SHA="$(git ls-remote --refs origin "$REMOTE_REF" | awk '{print $1}')"
+              if [ -n "$RELEASE_SHA" ]; then
+                break
+              fi
+              echo "Tag $TAG not visible yet, retry in 5s... ($i/12)"
+              sleep 5
+            done
+
+            if [ -z "$RELEASE_SHA" ]; then
+              echo "Tag $TAG does not exist on origin." >&2
+              exit 1
+            fi
           else
-            echo "release_tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-            echo "release_ref=${GITHUB_REF}" >> "$GITHUB_OUTPUT"
+            TAG="${GITHUB_REF_NAME}"
+            RELEASE_SHA="${GITHUB_SHA}"
           fi
+
+          echo "release_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "release_sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
 
   build-binaries:
     name: Build ${{ matrix.settings.target }}
@@ -59,7 +81,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.prepare.outputs.release_ref }}
+          ref: ${{ needs.prepare.outputs.release_sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -98,7 +120,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.prepare.outputs.release_ref }}
+          ref: ${{ needs.prepare.outputs.release_sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
