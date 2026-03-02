@@ -47,7 +47,7 @@ jobs:
       - name: Build bindings
         run: pnpm --filter bindings run build --release
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.settings.target }}
           path: packages/bindings/*.node
