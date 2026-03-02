@@ -2,6 +2,22 @@
   "name": "@rust_ast/mcp-server",
   "version": "0.1.0",
   "description": "MCP server for Rast AST analysis",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fanzheng221/Rast.git",
+    "directory": "packages/mcp-server"
+  },
+  "homepage": "https://github.com/fanzheng221/Rast/tree/main/packages/mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/fanzheng221/Rast/issues"
+  },
+  "keywords": [
+    "rast",
+    "ast",
+    "mcp",
+    "server"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -15,6 +31,9 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",

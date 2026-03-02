@@ -2,6 +2,23 @@
   "name": "@rust_ast/unplugin",
   "version": "0.1.0",
   "description": "Universal bundler plugin for Rast AST analysis",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fanzheng221/Rast.git",
+    "directory": "packages/unplugin"
+  },
+  "homepage": "https://github.com/fanzheng221/Rast/tree/main/packages/unplugin#readme",
+  "bugs": {
+    "url": "https://github.com/fanzheng221/Rast/issues"
+  },
+  "keywords": [
+    "rast",
+    "ast",
+    "vite",
+    "webpack",
+    "unplugin"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,6 +36,9 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "peerDependencies": {
     "vite": ">=3.0.0",

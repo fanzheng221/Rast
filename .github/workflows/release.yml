@@ -155,6 +155,7 @@ jobs:
       - name: Publish packages to npm
         run: pnpm release
         env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
