@@ -4,24 +4,54 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Optional tag to create manually (e.g. v0.1.0)"
+        required: false
+        type: string
 
 permissions:
   contents: write
 
 jobs:
   tag:
-    if: "${{ startsWith(github.event.head_commit.message, 'chore(release): version packages') }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Resolve release tag
-        id: version
-        run: echo "value=v$(node -p \"require('./packages/bindings/package.json').version\")" >> "$GITHUB_OUTPUT"
-      - name: Create and push tag
+      - name: Resolve release tag and guard
+        id: meta
         run: |
-          TAG="${{ steps.version.outputs.value }}"
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.tag }}" ]; then
+            echo "should_tag=true" >> "$GITHUB_OUTPUT"
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CURRENT_VERSION="$(node -p "require('./packages/bindings/package.json').version")"
+          CURRENT_TAG="v${CURRENT_VERSION}"
+          PREVIOUS_VERSION=""
+
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            PREVIOUS_VERSION="$(git show HEAD^:packages/bindings/package.json 2>/dev/null | node -e "const fs=require('node:fs'); try { const pkg=JSON.parse(fs.readFileSync(0, 'utf8')); process.stdout.write(pkg.version || '') } catch { process.stdout.write('') }")"
+          fi
+
+          if [ -n "$PREVIOUS_VERSION" ] && [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
+            echo "should_tag=false" >> "$GITHUB_OUTPUT"
+            echo "tag=$CURRENT_TAG" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_tag=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$CURRENT_TAG" >> "$GITHUB_OUTPUT"
+      - name: Create and push tag
+        if: steps.meta.outputs.should_tag == 'true'
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
           if git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
             echo "Tag $TAG already exists, skip."
             exit 0
