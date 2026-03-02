@@ -1,5 +1,5 @@
 {
-  "name": "@rust-ast/unplugin",
+  "name": "@rust_ast/unplugin",
   "version": "0.1.0",
   "description": "Universal bundler plugin for Rast AST analysis",
   "type": "module",
