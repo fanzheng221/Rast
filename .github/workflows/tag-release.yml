@@ -12,6 +12,7 @@ on:
         type: string
 
 permissions:
+  actions: write
   contents: write
 
 jobs:
@@ -49,14 +50,31 @@ jobs:
           echo "should_tag=true" >> "$GITHUB_OUTPUT"
           echo "tag=$CURRENT_TAG" >> "$GITHUB_OUTPUT"
       - name: Create and push tag
+        id: ensure_tag
         if: steps.meta.outputs.should_tag == 'true'
         run: |
           TAG="${{ steps.meta.outputs.tag }}"
           if git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
             echo "Tag $TAG already exists, skip."
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag "$TAG"
           git push origin "$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - name: Trigger release workflow
+        if: steps.meta.outputs.should_tag == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'release.yml',
+              ref: 'main',
+              inputs: {
+                tag: '${{ steps.meta.outputs.tag }}',
+              },
+            })
