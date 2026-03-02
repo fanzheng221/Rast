@@ -27,6 +27,7 @@
   "author": "Rast Contributors",
   "license": "MIT",
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },
