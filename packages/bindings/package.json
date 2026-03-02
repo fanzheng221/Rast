@@ -1,9 +1,16 @@
 {
-  "name": "@rast/bindings",
+  "name": "@rust-ast/bindings",
   "version": "0.1.0",
   "description": "NAPI bindings for Rast AST engine",
   "main": "index.js",
   "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./index.js",
+      "default": "./index.js"
+    }
+  },
   "napi": {
     "binaryName": "rast-bindings",
     "targets": [

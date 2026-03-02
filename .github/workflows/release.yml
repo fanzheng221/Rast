@@ -84,7 +84,7 @@ jobs:
           ref: ${{ needs.prepare.outputs.release_sha }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           registry-url: "https://registry.npmjs.org"
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -103,7 +103,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build bindings
-        run: pnpm --filter @rast/bindings exec napi build --release --platform --target ${{ matrix.settings.target }}
+        run: pnpm --filter @rust-ast/bindings exec napi build --release --platform --target ${{ matrix.settings.target }}
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
@@ -123,12 +123,16 @@ jobs:
           ref: ${{ needs.prepare.outputs.release_sha }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           registry-url: "https://registry.npmjs.org"
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@^11.5.1
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Download binary artifacts
@@ -143,6 +147,11 @@ jobs:
         run: |
           cd packages/bindings/release-artifacts
           shasum -a 256 *.node > SHA256SUMS.txt
+      - name: Build publishable JS artifacts
+        run: |
+          pnpm --filter @rust-ast/unplugin run build
+          pnpm --filter @rust-ast/mcp-server run build
+          pnpm --filter @rust-ast/cli run build
       - name: Publish packages to npm
         run: pnpm release
         env:

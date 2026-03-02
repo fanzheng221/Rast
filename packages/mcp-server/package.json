@@ -1,5 +1,5 @@
 {
-  "name": "@rast/mcp-server",
+  "name": "@rust-ast/mcp-server",
   "version": "0.1.0",
   "description": "MCP server for Rast AST analysis",
   "type": "module",
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
-    "@rast/bindings": "workspace:*"
+    "@rust-ast/bindings": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.3.2",

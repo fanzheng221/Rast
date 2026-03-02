@@ -51,4 +51,4 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build bindings
-        run: pnpm --filter @rast/bindings exec napi build --release --platform --target ${{ matrix.settings.target }}
+        run: pnpm --filter @rust-ast/bindings exec napi build --release --platform --target ${{ matrix.settings.target }}

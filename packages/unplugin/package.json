@@ -1,5 +1,5 @@
 {
-  "name": "@rast/unplugin",
+  "name": "@rust-ast/unplugin",
   "version": "0.1.0",
   "description": "Universal bundler plugin for Rast AST analysis",
   "type": "module",
@@ -33,7 +33,7 @@
     }
   },
   "dependencies": {
-    "@rast/bindings": "workspace:*",
+    "@rust-ast/bindings": "workspace:*",
     "unplugin": "^3.0.0"
   },
   "devDependencies": {

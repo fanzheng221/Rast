@@ -1,4 +1,4 @@
-import * as bindings from '@rast/bindings';
+import * as bindings from '@rust-ast/bindings';
 
 import type { AnalysisResult } from './types';
 

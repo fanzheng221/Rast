@@ -2,7 +2,7 @@
 
 [English](./README.en.md) | 中文
 
-[![npm version](https://img.shields.io/npm/v/@rast/cli.svg)](https://www.npmjs.com/package/@rast/cli)
+[![npm version](https://img.shields.io/npm/v/@rust-ast/cli.svg)](https://www.npmjs.com/package/@rust-ast/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 **Rast** 是一个基于 Rust 和 [oxc](https://github.com/oxc-project/oxc) 开发的高性能 AST 模式匹配与代码改写工具链。我们提供从底层的快速 Rust 引擎到 Node.js API 绑定、开箱即用的命令行工具（CLI）、构建工具插件，以及标准的 MCP Server 的一整套代码分析与重构解决方案。
@@ -25,17 +25,17 @@
 
 ### 1️⃣ 全局安装 CLI (推荐)
 
-最快速体验 Rast 的方式是将其安装为全局命令行工具。你可以使用 npm、yarn 或 pnpm 安装 `@rast/cli` 包：
+最快速体验 Rast 的方式是将其安装为全局命令行工具。你可以使用 npm、yarn 或 pnpm 安装 `@rust-ast/cli` 包：
 
 ```bash
 # 全局安装 CLI
-npm install -g @rast/cli
+npm install -g @rust-ast/cli
 
 # 或通过 pnpm
-pnpm add -g @rast/cli
+pnpm add -g @rust-ast/cli
 ```
 
-*(如果你不想全局安装，也可以在下文命令中直接使用 `npx @rast/cli` 替代 `rast`)*
+*(如果你不想全局安装，也可以在下文命令中直接使用 `npx @rust-ast/cli` 替代 `rast`)*
 
 ### 2️⃣ 编写规则与目录扫描
 
@@ -75,16 +75,16 @@ rast scan src/ rules/no-console.yml
 
 除了 CLI 之外，Rast 还可以作为模块或插件集成到你的各类工程流中。
 
-### Node.js 绑定 API (`@rast/bindings`)
+### Node.js 绑定 API (`@rust-ast/bindings`)
 
 对于需要在自己的 Node.js 脚本中调用 AST 分析引擎的场景，你可以直接使用 Rast 提供的高性能 NAPI 绑定层。
 
 ```bash
-npm install @rast/bindings
+npm install @rust-ast/bindings
 ```
 
 ```javascript
-const rast = require('@rast/bindings');
+const rast = require('@rust-ast/bindings');
 
 const rule = `
 id: replace-foo
@@ -99,18 +99,18 @@ const result = rast.apply_rule('foo("hello");', rule);
 console.log(result); // 输出: bar("hello");
 ```
 
-### 构建工具插件 (`@rast/unplugin`)
+### 构建工具插件 (`@rust-ast/unplugin`)
 
 Rast 可以拦截并转化构建阶段的代码（支持 Vite / Webpack / Rollup）。
 
 ```bash
-npm install -D @rast/unplugin
+npm install -D @rust-ast/unplugin
 ```
 
 **Vite 配置示例 (`vite.config.ts`):**
 ```typescript
 import { defineConfig } from 'vite';
-import rast from '@rast/unplugin';
+import rast from '@rust-ast/unplugin';
 
 export default defineConfig({
   plugins: [
@@ -124,7 +124,7 @@ export default defineConfig({
 });
 ```
 
-### MCP 服务器 (`@rast/mcp-server`)
+### MCP 服务器 (`@rust-ast/mcp-server`)
 
 Rast 暴露了 7 个强大的底层工具给 AI 助手，包含 `scan_directory`、`apply_rule`、`get_file_structure`、`analyze_ast` 等。
 
@@ -135,7 +135,7 @@ Rast 暴露了 7 个强大的底层工具给 AI 助手，包含 `scan_directory`
   "mcpServers": {
     "rast-mcp": {
       "command": "npx",
-      "args": ["-y", "@rast/mcp-server"]
+      "args": ["-y", "@rust-ast/mcp-server"]
     }
   }
 }
