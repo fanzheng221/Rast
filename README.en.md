@@ -2,7 +2,7 @@
 
 English | [中文](./README.md)
 
-[![npm version](https://img.shields.io/npm/v/@rust-ast/cli.svg)](https://www.npmjs.com/package/@rust-ast/cli)
+[![npm version](https://img.shields.io/npm/v/@rust_ast/cli.svg)](https://www.npmjs.com/package/@rust_ast/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 **Rast** is a high-performance AST pattern-matching and code-rewrite toolkit powered by Rust and [oxc](https://github.com/oxc-project/oxc). We provide a complete code analysis and refactoring solution, ranging from a fast Rust engine to Node.js API bindings, an out-of-the-box CLI, bundler plugins, and a standard MCP Server.
@@ -25,17 +25,17 @@ English | [中文](./README.md)
 
 ### 1️⃣ Global CLI Installation (Recommended)
 
-The fastest way to experience Rast is to install the CLI globally. You can use npm, yarn, or pnpm to install the `@rust-ast/cli` package:
+The fastest way to experience Rast is to install the CLI globally. You can use npm, yarn, or pnpm to install the `@rust_ast/cli` package:
 
 ```bash
 # Install CLI globally
-npm install -g @rust-ast/cli
+npm install -g @rust_ast/cli
 
 # Or using pnpm
-pnpm add -g @rust-ast/cli
+pnpm add -g @rust_ast/cli
 ```
 
-*(If you prefer not to install globally, you can substitute `rast` with `npx @rust-ast/cli` in the commands below)*
+*(If you prefer not to install globally, you can substitute `rast` with `npx @rust_ast/cli` in the commands below)*
 
 ### 2️⃣ Write Rules and Scan Directories
 
@@ -75,16 +75,16 @@ rast scan src/ rules/no-console.yml
 
 Rast can also be used as a module or plugin deeply integrated into your workflows.
 
-### Node.js Bindings API (`@rust-ast/bindings`)
+### Node.js Bindings API (`@rust_ast/bindings`)
 
 For usage directly inside Node.js scripts, we provide high-performance NAPI bindings bridging the Rust engine.
 
 ```bash
-npm install @rust-ast/bindings
+npm install @rust_ast/bindings
 ```
 
 ```javascript
-const rast = require('@rust-ast/bindings');
+const rast = require('@rust_ast/bindings');
 
 const rule = `
 id: replace-foo
@@ -99,18 +99,18 @@ const result = rast.apply_rule('foo("hello");', rule);
 console.log(result); // Output: bar("hello");
 ```
 
-### Bundler Plugin (`@rust-ast/unplugin`)
+### Bundler Plugin (`@rust_ast/unplugin`)
 
 Rast can intercept and transform code dynamically during the build phase (supports Vite, Webpack, and Rollup).
 
 ```bash
-npm install -D @rust-ast/unplugin
+npm install -D @rust_ast/unplugin
 ```
 
 **Vite Configuration Example (`vite.config.ts`):**
 ```typescript
 import { defineConfig } from 'vite';
-import rast from '@rust-ast/unplugin';
+import rast from '@rust_ast/unplugin';
 
 export default defineConfig({
   plugins: [
@@ -124,7 +124,7 @@ export default defineConfig({
 });
 ```
 
-### MCP Server (`@rust-ast/mcp-server`)
+### MCP Server (`@rust_ast/mcp-server`)
 
 Rast exposes 7 powerful underlying tools to AI assistants, including `scan_directory`, `apply_rule`, `get_file_structure`, `analyze_ast`, etc.
 
@@ -135,7 +135,7 @@ Simply configure your MCP-compatible AI client (like Claude Desktop or Cursor) t
   "mcpServers": {
     "rast-mcp": {
       "command": "npx",
-      "args": ["-y", "@rust-ast/mcp-server"]
+      "args": ["-y", "@rust_ast/mcp-server"]
     }
   }
 }

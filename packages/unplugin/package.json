@@ -33,7 +33,7 @@
     }
   },
   "dependencies": {
-    "@rust-ast/bindings": "workspace:*",
+    "@rust_ast/bindings": "workspace:*",
     "unplugin": "^3.0.0"
   },
   "devDependencies": {

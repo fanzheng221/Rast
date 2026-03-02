@@ -1,5 +1,5 @@
 {
-  "name": "@rust-ast/bindings",
+  "name": "@rust_ast/bindings",
   "version": "0.1.0",
   "description": "NAPI bindings for Rast AST engine",
   "main": "index.js",

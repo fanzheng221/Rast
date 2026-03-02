@@ -22,7 +22,7 @@ export let projectGraph: ProjectGraph | undefined;
 
 export async function getBindings(): Promise<Bindings> {
   if (!bindings) {
-    bindings = require('@rust-ast/bindings') as Bindings;
+    bindings = require('@rust_ast/bindings') as Bindings;
   }
   return bindings;
 }

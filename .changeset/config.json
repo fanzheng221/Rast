@@ -4,10 +4,10 @@
   "commit": false,
   "fixed": [
     [
-      "@rust-ast/bindings",
-      "@rust-ast/unplugin",
-      "@rust-ast/mcp-server",
-      "@rust-ast/cli"
+      "@rust_ast/bindings",
+      "@rust_ast/unplugin",
+      "@rust_ast/mcp-server",
+      "@rust_ast/cli"
     ]
   ],
   "linked": [],

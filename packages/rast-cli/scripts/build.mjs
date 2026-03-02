@@ -19,7 +19,7 @@ async function main() {
   await mkdir(distDir, { recursive: true });
   await copyFile(rustBinary, join(distDir, 'index.js'));
 
-  console.log('Built @rust-ast/cli');
+  console.log('Built @rust_ast/cli');
 }
 
 main().catch(console.error);

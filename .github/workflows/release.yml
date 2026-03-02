@@ -103,7 +103,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build bindings
-        run: pnpm --filter @rust-ast/bindings exec napi build --release --platform --target ${{ matrix.settings.target }}
+        run: pnpm --filter @rust_ast/bindings exec napi build --release --platform --target ${{ matrix.settings.target }}
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
@@ -149,9 +149,9 @@ jobs:
           shasum -a 256 *.node > SHA256SUMS.txt
       - name: Build publishable JS artifacts
         run: |
-          pnpm --filter @rust-ast/unplugin run build
-          pnpm --filter @rust-ast/mcp-server run build
-          pnpm --filter @rust-ast/cli run build
+          pnpm --filter @rust_ast/unplugin run build
+          pnpm --filter @rust_ast/mcp-server run build
+          pnpm --filter @rust_ast/cli run build
       - name: Publish packages to npm
         run: pnpm release
         env:

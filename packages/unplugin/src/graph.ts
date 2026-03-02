@@ -1,4 +1,4 @@
-import { initialize_graph, ProjectGraph } from '@rust-ast/bindings';
+import { initialize_graph, ProjectGraph } from '@rust_ast/bindings';
 
 export let projectGraph: ProjectGraph | null = null;
 

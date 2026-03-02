@@ -1,5 +1,5 @@
 {
-  "name": "@rust-ast/cli",
+  "name": "@rust_ast/cli",
   "version": "0.1.0",
   "description": "Rast CLI tool for pattern matching and code rewriting",
   "type": "commonjs",
@@ -16,6 +16,6 @@
     "dist"
   ],
   "dependencies": {
-    "@rust-ast/bindings": "workspace:*"
+    "@rust_ast/bindings": "^0.1.0"
   }
 }
