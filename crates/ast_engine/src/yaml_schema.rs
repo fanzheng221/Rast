@@ -88,7 +88,6 @@ pub struct HasRelationalRule {
     pub has: Box<Rule>,
 }
 
-
 impl RuleCore {
     pub fn from_yaml(input: &str) -> Result<Self, serde_yaml::Error> {
         serde_yaml::from_str(input)

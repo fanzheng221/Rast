@@ -36,15 +36,8 @@ rule:
 fix: logger.info($A)
 "#;
 
-    let result = scan(
-        &dir.path().to_path_buf(),
-        rule,
-        true,
-        OutputFormat::Json,
-        None,
-        false,
-    )
-    .expect("scan failed");
+    let result =
+        scan(dir.path(), rule, true, OutputFormat::Json, None, false).expect("scan failed");
 
     let parsed: serde_json::Value = serde_json::from_str(&result).expect("invalid json result");
     assert_eq!(parsed.as_array().expect("expected array").len(), 2);
@@ -72,7 +65,7 @@ fix: logger.info($A)
 "#;
 
     let result = scan(
-        &dir.path().to_path_buf(),
+        dir.path(),
         rule,
         true,
         OutputFormat::Json,
@@ -84,5 +77,8 @@ fix: logger.info($A)
     let parsed: serde_json::Value = serde_json::from_str(&result).expect("invalid json result");
     let entries = parsed.as_array().expect("expected array");
     assert_eq!(entries.len(), 1);
-    assert!(entries[0]["path"].as_str().expect("path string").ends_with("a.js"));
+    assert!(entries[0]["path"]
+        .as_str()
+        .expect("path string")
+        .ends_with("a.js"));
 }

@@ -14,15 +14,16 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "echo 'MCP server tests coming soon'"
+    "test": "vitest run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "@rast/bindings": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@types/node": "^25.3.2",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.18"
   }
 }

@@ -31,14 +31,19 @@ fn prefer_outer_skips_overlapping_children() {
             let pattern = pattern.children[0].children[0].children[0].clone();
             let matcher = PatternMatcher::new(MatchStrictness::Template);
 
-            let results = find_all_matches(&matcher, target, &pattern, ConflictResolution::PreferOuter);
+            let results =
+                find_all_matches(&matcher, target, &pattern, ConflictResolution::PreferOuter);
 
             assert_eq!(results.len(), 1);
             assert_eq!(
-                &"const value = fn(fn(a));"[results[0].span.start as usize..results[0].span.end as usize],
+                &"const value = fn(fn(a));"
+                    [results[0].span.start as usize..results[0].span.end as usize],
                 "fn(fn(a))"
             );
-            assert_eq!(results[0].environment.get_multi_capture("A").unwrap().len(), 1);
+            assert_eq!(
+                results[0].environment.get_multi_capture("A").unwrap().len(),
+                1
+            );
         },
     );
 }
@@ -52,11 +57,13 @@ fn prefer_inner_selects_smallest_overlapping_match() {
             let pattern = pattern.children[0].children[0].children[0].clone();
             let matcher = PatternMatcher::new(MatchStrictness::Template);
 
-            let results = matcher.find_all_matches(target, &pattern, ConflictResolution::PreferInner);
+            let results =
+                matcher.find_all_matches(target, &pattern, ConflictResolution::PreferInner);
 
             assert_eq!(results.len(), 1);
             assert_eq!(
-                &"const value = fn(fn(a));"[results[0].span.start as usize..results[0].span.end as usize],
+                &"const value = fn(fn(a));"
+                    [results[0].span.start as usize..results[0].span.end as usize],
                 "fn(a)"
             );
         },
@@ -72,7 +79,8 @@ fn non_overlapping_matches_are_sorted_by_source_position() {
             let pattern = pattern.children[0].children[0].children[0].clone();
             let matcher = PatternMatcher::default();
 
-            let results = find_all_matches(&matcher, target, &pattern, ConflictResolution::PreferOuter);
+            let results =
+                find_all_matches(&matcher, target, &pattern, ConflictResolution::PreferOuter);
 
             assert_eq!(results.len(), 3);
             assert!(results[0].span.start < results[1].span.start);

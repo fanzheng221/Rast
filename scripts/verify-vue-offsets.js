@@ -191,7 +191,7 @@ function validateVueFile(source, filename) {
   for (const pattern of PATTERNS) {
     let payload;
     try {
-      const raw = bindings.findPatternInVueSfc(source, pattern);
+      const raw = bindings.find_pattern_in_vue_sfc(source, pattern);
       payload = JSON.parse(raw);
     } catch {
       return { skipped: true, checks, matches };
@@ -199,7 +199,7 @@ function validateVueFile(source, filename) {
     checks += 1;
 
     if (!payload || typeof payload !== 'object') {
-      throw new Error(`${filename}: findPatternInVueSfc should return an object payload`);
+      throw new Error(`${filename}: find_pattern_in_vue_sfc should return an object payload`);
     }
     if (!payload.script || !payload.script.span) {
       throw new Error(`${filename}: payload.script is missing`);
@@ -282,9 +282,9 @@ function cloneVueRepoSparse(repo, destinationRoot) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  if (typeof bindings.findPatternInVueSfc !== 'function') {
+  if (typeof bindings.find_pattern_in_vue_sfc !== 'function') {
     throw new Error(
-      'Missing bindings.findPatternInVueSfc. Please run "pnpm build" to regenerate NAPI exports.'
+      'Missing bindings.find_pattern_in_vue_sfc. Please run "pnpm build" to regenerate NAPI exports.'
     );
   }
 

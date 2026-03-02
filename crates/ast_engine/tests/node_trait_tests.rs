@@ -70,9 +70,10 @@ fn into_ast_node_supports_statement_declaration_expression() {
     assert!(statement_node.as_statement().is_some());
 
     let declaration = match statement {
-        Statement::ExportNamedDeclaration(named_export) => {
-            named_export.declaration.as_ref().expect("expected declaration")
-        }
+        Statement::ExportNamedDeclaration(named_export) => named_export
+            .declaration
+            .as_ref()
+            .expect("expected declaration"),
         _ => panic!("expected export named declaration statement"),
     };
 

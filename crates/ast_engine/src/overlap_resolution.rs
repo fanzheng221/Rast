@@ -1,16 +1,11 @@
 use crate::{AstNode, MatchEnvironment, Matcher, NodeSpan, NodeTrait, PatternNode};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ConflictResolution {
+    #[default]
     PreferOuter,
     PreferInner,
-}
-
-impl Default for ConflictResolution {
-    fn default() -> Self {
-        Self::PreferOuter
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -79,14 +74,7 @@ pub fn find_all_matches<'a, M: Matcher + ?Sized>(
         }
 
         for child in node.children() {
-            collect_matches(
-                matcher,
-                child,
-                pattern,
-                depth + 1,
-                visit_index,
-                candidates,
-            );
+            collect_matches(matcher, child, pattern, depth + 1, visit_index, candidates);
         }
     }
 
@@ -123,7 +111,10 @@ pub fn find_all_matches<'a, M: Matcher + ?Sized>(
     });
     selected.dedup_by(|left, right| left.result == right.result);
 
-    selected.into_iter().map(|candidate| candidate.result).collect()
+    selected
+        .into_iter()
+        .map(|candidate| candidate.result)
+        .collect()
 }
 
 pub trait FindAllMatches {

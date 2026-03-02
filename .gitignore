@@ -40,3 +40,9 @@ index.js
 # System
 .DS_Store
 Thumbs.db
+
+# Local assistant state (do not commit)
+/.serena/
+/.sisyphus/
+/opencode.md
+/opencode.json

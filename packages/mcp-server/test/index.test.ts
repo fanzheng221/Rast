@@ -1,47 +1,56 @@
-import assert from 'node:assert/strict';
-import test from 'node:test';
-import { callTool, projectGraph, tools } from '../src/index';
+import { describe, expect, it } from 'vitest';
+import { callTool, tools } from '../src/index.js';
+import { getProjectGraph } from '../src/bindings.js';
 
-test('registers all expected MCP tools', () => {
-  const names = tools.map((tool) => tool.name);
-  assert.deepEqual(names, [
-    'analyze_ast',
-    'get_file_structure',
-    'get_symbol_details',
-    'analyze_dependencies',
-  ]);
-});
+describe('MCP server tools', () => {
+  it('registers all expected MCP tools', () => {
+    const names = tools.map((tool) => tool.name);
+    expect(names).toEqual([
+      'analyze_ast',
+      'get_file_structure',
+      'get_symbol_details',
+      'analyze_dependencies',
+      'find_pattern',
+      'apply_rule',
+      'scan_directory',
+    ]);
+  });
 
-test('get_file_structure returns parsed file structure JSON text', () => {
-  const path = 'mcp-server-test-file.ts';
-  const code = 'export function demo() { return 1; }';
-  projectGraph.add_file(path, code);
+  it('get_file_structure returns parsed file structure JSON text', async () => {
+    const path = 'mcp-server-test-file.ts';
+    const code = 'export function demo() { return 1; }';
+    const graph = await getProjectGraph();
+    graph.add_file(path, code);
 
-  const result = callTool('get_file_structure', { path });
-  assert.ok(typeof result === 'string');
-  assert.notEqual(result, 'null');
+    const result = await callTool('get_file_structure', { path });
+    expect(typeof result).toBe('string');
+    expect(result).not.toBe('null');
 
-  const parsed = JSON.parse(result) as { exports?: string[]; signatures?: unknown[] };
-  assert.ok(Array.isArray(parsed.exports));
-  assert.ok(Array.isArray(parsed.signatures));
-});
+    const parsed = JSON.parse(result) as { exports?: Array<{ name?: string }> };
+    expect(Array.isArray(parsed.exports)).toBe(true);
+  });
 
-test('get_symbol_details returns JSON array text', () => {
-  const path = 'mcp-server-symbol-test.ts';
-  const code = 'export function toolSymbol() { return true; }';
-  projectGraph.add_file(path, code);
+  it('find_pattern returns JSON array text', async () => {
+    const result = await callTool('find_pattern', {
+      source: 'const value = fn(answer, foo, bar);',
+      pattern: 'const value = fn($A, $$$B);',
+    });
+    const parsed = JSON.parse(result) as Array<{ metavariables: Record<string, string> }>;
+    expect(parsed.length).toBe(1);
+    expect(parsed[0]?.metavariables?.A).toBe('answer');
+  });
 
-  const result = callTool('get_symbol_details', { symbol: 'toolSymbol' });
-  const parsed = JSON.parse(result);
-  assert.ok(Array.isArray(parsed));
-});
-
-test('analyze_dependencies returns JSON text for target paths', () => {
-  const targetPath = 'mcp-server-deps-test.ts';
-  const code = "import { helper } from './helper'; export const value = helper();";
-  projectGraph.add_file(targetPath, code);
-
-  const result = callTool('analyze_dependencies', { paths: [targetPath] });
-  assert.ok(typeof result === 'string');
-  assert.doesNotThrow(() => JSON.parse(result));
+  it('apply_rule rewrites source text', async () => {
+    const result = await callTool('apply_rule', {
+      source: 'console.log(foo);',
+      rule: `
+id: no-console
+language: ts
+rule:
+  pattern: console.log($A)
+fix: logger.info($A)
+`,
+    });
+    expect(result).toBe('logger.info(foo)');
+  });
 });

@@ -34,13 +34,13 @@
   },
   "dependencies": {
     "@rast/bindings": "workspace:*",
-    "unplugin": "^1.10.0"
+    "unplugin": "^3.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@types/node": "^25.3.2",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2",
-    "vite": "^6.0.7",
-    "vitest": "^2.1.8"
+    "typescript": "^5.9.2",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
   }
 }

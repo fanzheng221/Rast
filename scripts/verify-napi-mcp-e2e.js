@@ -67,11 +67,11 @@ function assertRewritten(files) {
 }
 
 function runNapiCodemod(root) {
-  const resultText = bindings.scanDirectory(root, ruleYaml(), false);
+  const resultText = bindings.scan_directory(root, ruleYaml(), false);
   const rows = JSON.parse(resultText);
-  assert(Array.isArray(rows), 'NAPI scanDirectory should return array');
+  assert(Array.isArray(rows), 'NAPI scan_directory should return array');
   const totalMatches = rows.reduce((sum, row) => sum + (row.matches || 0), 0);
-  assert(totalMatches >= 2, 'NAPI scanDirectory should rewrite all fixture files');
+  assert(totalMatches >= 2, 'NAPI scan_directory should rewrite all fixture files');
 }
 
 async function runMcpCodemod(root) {
@@ -89,21 +89,21 @@ async function runMcpCodemod(root) {
   try {
     const listed = await client.listTools();
     const toolNames = new Set(listed.tools.map((tool) => tool.name));
-    assert(toolNames.has('scanDirectory'), 'MCP tool list missing scanDirectory');
+    assert(toolNames.has('scan_directory'), 'MCP tool list missing scan_directory');
 
     const result = await client.callTool({
-      name: 'scanDirectory',
+      name: 'scan_directory',
       arguments: {
         rootPath: root,
         rule: ruleYaml(),
         dryRun: false,
       },
     });
-    const text = getTextContent(result, 'MCP scanDirectory');
+    const text = getTextContent(result, 'MCP scan_directory');
     const rows = JSON.parse(text);
-    assert(Array.isArray(rows), 'MCP scanDirectory should return array JSON');
+    assert(Array.isArray(rows), 'MCP scan_directory should return array JSON');
     const totalMatches = rows.reduce((sum, row) => sum + (row.matches || 0), 0);
-    assert(totalMatches >= 2, 'MCP scanDirectory should rewrite all fixture files');
+    assert(totalMatches >= 2, 'MCP scan_directory should rewrite all fixture files');
   } finally {
     await client.close();
   }

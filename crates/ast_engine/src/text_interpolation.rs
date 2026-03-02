@@ -8,9 +8,7 @@ pub enum TemplateFix {
     /// Pure text replacement without metavariables
     Text(String),
     /// Template with metavariable placeholders
-    Template {
-        fragments: Vec<TemplateFragment>,
-    },
+    Template { fragments: Vec<TemplateFragment> },
 }
 
 /// A fragment of a template - either literal text or a metavariable reference.
@@ -44,14 +42,20 @@ impl TemplateFix {
                     if first.is_ascii_uppercase() || first == '_' {
                         let name_end = remaining
                             .chars()
-                            .take_while(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || *c == '_')
+                            .take_while(|c| {
+                                c.is_ascii_uppercase() || c.is_ascii_digit() || *c == '_'
+                            })
                             .map(|c| c.len_utf8())
                             .sum::<usize>();
                         if name_end > 0 {
                             if current_literal_start < pos {
-                                fragments.push(TemplateFragment::Literal(template[current_literal_start..pos].to_string()));
+                                fragments.push(TemplateFragment::Literal(
+                                    template[current_literal_start..pos].to_string(),
+                                ));
                             }
-                            fragments.push(TemplateFragment::MultiMetaVar(remaining[..name_end].to_string()));
+                            fragments.push(TemplateFragment::MultiMetaVar(
+                                remaining[..name_end].to_string(),
+                            ));
                             pos = pos + 3 + name_end;
                             current_literal_start = pos;
                             continue;
@@ -59,7 +63,7 @@ impl TemplateFix {
                     }
                 }
             }
-            
+
             // Check for $ (single metavariable)
             if template[pos..].starts_with('$') && pos + 1 < template.len() {
                 let remaining = &template[pos + 1..];
@@ -68,14 +72,20 @@ impl TemplateFix {
                     if first.is_ascii_uppercase() || first == '_' {
                         let name_end = remaining
                             .chars()
-                            .take_while(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || *c == '_')
+                            .take_while(|c| {
+                                c.is_ascii_uppercase() || c.is_ascii_digit() || *c == '_'
+                            })
                             .map(|c| c.len_utf8())
                             .sum::<usize>();
                         if name_end > 0 {
                             if current_literal_start < pos {
-                                fragments.push(TemplateFragment::Literal(template[current_literal_start..pos].to_string()));
+                                fragments.push(TemplateFragment::Literal(
+                                    template[current_literal_start..pos].to_string(),
+                                ));
                             }
-                            fragments.push(TemplateFragment::SingleMetaVar(remaining[..name_end].to_string()));
+                            fragments.push(TemplateFragment::SingleMetaVar(
+                                remaining[..name_end].to_string(),
+                            ));
                             pos = pos + 1 + name_end;
                             current_literal_start = pos;
                             continue;
@@ -83,14 +93,16 @@ impl TemplateFix {
                     }
                 }
             }
-            
+
             // If no metavariable was found at current pos, treat current char as literal
             pos += 1;
         }
 
         // Add any remaining literal text
         if current_literal_start < template.len() {
-            fragments.push(TemplateFragment::Literal(template[current_literal_start..].to_string()));
+            fragments.push(TemplateFragment::Literal(
+                template[current_literal_start..].to_string(),
+            ));
         }
 
         if fragments.is_empty() {
@@ -117,20 +129,20 @@ pub fn generate_replacement(template: &TemplateFix, env: &MatchEnvironment) -> S
                         if let Some(captured) = env.get_single_capture(name) {
                             result.push_str(&captured.text);
                         } else if let Some(captured_nodes) = env.get_multi_capture(name) {
-                            let texts: Vec<&str> = captured_nodes.iter().map(|n| n.text.as_str()).collect();
+                            let texts: Vec<&str> =
+                                captured_nodes.iter().map(|n| n.text.as_str()).collect();
                             result.push_str(&texts.join(""));
-                        }
-                        else {
+                        } else {
                             // Unmatched metavariable - leave as-is
                             result.push_str(&format!("${}", name));
                         }
                     }
                     TemplateFragment::MultiMetaVar(name) => {
                         if let Some(captured_nodes) = env.get_multi_capture(name) {
-                            let texts: Vec<&str> = captured_nodes.iter().map(|n| n.text.as_str()).collect();
+                            let texts: Vec<&str> =
+                                captured_nodes.iter().map(|n| n.text.as_str()).collect();
                             result.push_str(&texts.join(""));
-                        }
-                        else {
+                        } else {
                             // Unmatched metavariable - leave as-is
                             result.push_str(&format!("$$${}", name));
                         }

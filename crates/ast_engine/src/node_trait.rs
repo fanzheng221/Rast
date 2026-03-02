@@ -137,20 +137,14 @@ impl<'a> AstNode<'a> {
         }
     }
 
-    pub fn from_ts_type_alias(
-        type_alias: &'a TSTypeAliasDeclaration<'a>,
-        source: &'a str,
-    ) -> Self {
+    pub fn from_ts_type_alias(type_alias: &'a TSTypeAliasDeclaration<'a>, source: &'a str) -> Self {
         Self {
             source,
             kind: AstNodeKind::TSTypeAliasDeclaration(type_alias),
         }
     }
 
-    pub fn from_call_expression(
-        call_expression: &'a CallExpression<'a>,
-        source: &'a str,
-    ) -> Self {
+    pub fn from_call_expression(call_expression: &'a CallExpression<'a>, source: &'a str) -> Self {
         Self {
             source,
             kind: AstNodeKind::CallExpression(call_expression),
@@ -240,7 +234,9 @@ impl<'a> AstNode<'a> {
 
     fn statement_children(statement: &'a Statement<'a>, source: &'a str) -> Vec<AstNode<'a>> {
         match statement {
-            Statement::ImportDeclaration(node) => vec![AstNode::from_import_declaration(node, source)],
+            Statement::ImportDeclaration(node) => {
+                vec![AstNode::from_import_declaration(node, source)]
+            }
             Statement::VariableDeclaration(node) => {
                 vec![AstNode::from_variable_declaration(node, source)]
             }

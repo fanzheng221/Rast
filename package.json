@@ -27,7 +27,13 @@
   "author": "Rast Contributors",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.18"
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "^0.25.0",
+      "serialize-javascript": "^7.0.3"
+    }
   }
 }

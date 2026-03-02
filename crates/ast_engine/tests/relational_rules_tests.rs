@@ -1,12 +1,8 @@
 use ast_engine::{
-    evaluate_relational_rule, AstNode, IntoAstNode, NodeTrait, RelationalRule, RelationalRuleKind, Rule,
-    RuleKind, KindAtomicRule,
+    evaluate_relational_rule, AstNode, IntoAstNode, KindAtomicRule, NodeTrait, RelationalRule,
+    RelationalRuleKind, Rule, RuleKind,
 };
-use oxc::{
-    allocator::Allocator,
-    parser::Parser,
-    span::SourceType,
-};
+use oxc::{allocator::Allocator, parser::Parser, span::SourceType};
 
 fn parse_js<'a>(allocator: &'a Allocator, source: &'a str) -> oxc::ast::ast::Program<'a> {
     let source_type = SourceType::default();
@@ -21,12 +17,11 @@ fn test_evaluate_relational_rule_inside() {
     let program = parse_js(&allocator, source);
     let root = program.as_node(source);
 
-
     let mut ancestors = vec![root];
-    
+
     let var_decl_node = root.children().into_iter().next().unwrap();
     ancestors.push(var_decl_node);
-    
+
     fn find_call_expr<'a>(
         node: AstNode<'a>,
         current_ancestors: &mut Vec<AstNode<'a>>,
@@ -42,12 +37,12 @@ fn test_evaluate_relational_rule_inside() {
         }
         current_ancestors.pop();
     }
-    
+
     let mut target_info = None;
     find_call_expr(root, &mut vec![], &mut target_info);
-    
+
     let (target, ancestors) = target_info.unwrap();
-    
+
     let rule = RelationalRule::new(
         RelationalRuleKind::Inside,
         Rule {
@@ -56,7 +51,7 @@ fn test_evaluate_relational_rule_inside() {
             }),
         },
     );
-    
+
     let evaluate = |node: AstNode<'_>, rule: &Rule| -> bool {
         if let RuleKind::Kind(kind_rule) = &rule.core {
             node.kind() == kind_rule.kind
@@ -64,10 +59,13 @@ fn test_evaluate_relational_rule_inside() {
             false
         }
     };
-    
+
     let result = evaluate_relational_rule(target, &ancestors, &rule, evaluate);
-    assert!(result, "CallExpression should be inside VariableDeclaration");
-    
+    assert!(
+        result,
+        "CallExpression should be inside VariableDeclaration"
+    );
+
     let rule_fail = RelationalRule::new(
         RelationalRuleKind::Inside,
         Rule {
@@ -76,9 +74,12 @@ fn test_evaluate_relational_rule_inside() {
             }),
         },
     );
-    
+
     let result_fail = evaluate_relational_rule(target, &ancestors, &rule_fail, evaluate);
-    assert!(!result_fail, "CallExpression should not be inside ClassDeclaration");
+    assert!(
+        !result_fail,
+        "CallExpression should not be inside ClassDeclaration"
+    );
 }
 
 #[test]
@@ -96,7 +97,7 @@ fn test_evaluate_relational_rule_has() {
         }
     }
     let target = var_decl_node.unwrap();
-    
+
     let rule = RelationalRule::new(
         RelationalRuleKind::Has,
         Rule {
@@ -105,7 +106,7 @@ fn test_evaluate_relational_rule_has() {
             }),
         },
     );
-    
+
     let evaluate = |node: AstNode<'_>, rule: &Rule| -> bool {
         if let RuleKind::Kind(kind_rule) = &rule.core {
             node.kind() == kind_rule.kind
@@ -113,10 +114,10 @@ fn test_evaluate_relational_rule_has() {
             false
         }
     };
-    
+
     let result = evaluate_relational_rule(target, &[], &rule, evaluate);
     assert!(result, "VariableDeclaration should have CallExpression");
-    
+
     let rule_fail = RelationalRule::new(
         RelationalRuleKind::Has,
         Rule {
@@ -125,7 +126,10 @@ fn test_evaluate_relational_rule_has() {
             }),
         },
     );
-    
+
     let result_fail = evaluate_relational_rule(target, &[], &rule_fail, evaluate);
-    assert!(!result_fail, "VariableDeclaration should not have ClassDeclaration");
+    assert!(
+        !result_fail,
+        "VariableDeclaration should not have ClassDeclaration"
+    );
 }

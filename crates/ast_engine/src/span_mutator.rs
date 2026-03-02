@@ -148,7 +148,10 @@ fn validate_diffs(source: &str, diffs: &[TextDiff]) -> Result<(), SpanMutatorErr
     Ok(())
 }
 
-fn validate_replacements(source: &str, replacements: &[SpanReplacement]) -> Result<(), SpanMutatorError> {
+fn validate_replacements(
+    source: &str,
+    replacements: &[SpanReplacement],
+) -> Result<(), SpanMutatorError> {
     let spans = replacements
         .iter()
         .map(|replacement| replacement.span)
@@ -168,7 +171,12 @@ fn resolve_replacement_spans(source: &str, replacements: &[SpanReplacement]) -> 
             .span
             .start
             .cmp(&replacements[*right].span.start)
-            .then_with(|| replacements[*left].span.end.cmp(&replacements[*right].span.end))
+            .then_with(|| {
+                replacements[*left]
+                    .span
+                    .end
+                    .cmp(&replacements[*right].span.end)
+            })
     });
 
     let mut resolved = replacements

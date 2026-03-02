@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { analyzeAst, applyRule, scanDirectory } = require('../packages/bindings');
+const { analyze_ast, apply_rule, scan_directory } = require('../packages/bindings');
 const { rastUnplugin } = require('../packages/unplugin/dist/index.cjs');
 
 function assert(condition, message) {
@@ -37,30 +37,30 @@ function noConsoleRuleYaml() {
 
 async function runBindingsChecks() {
   console.log('Test 1: Direct bindings call...');
-  const analysis = JSON.parse(analyzeAst('export const x = 1;'));
+  const analysis = JSON.parse(analyze_ast('export const x = 1;'));
   assert(Array.isArray(analysis.exports), 'Test 1 failed: exports should be an array');
   console.log('✓ Test 1 passed');
 
   console.log('Test 2: Code with linting issues...');
-  const withIssues = JSON.parse(analyzeAst('var x = 1;'));
+  const withIssues = JSON.parse(analyze_ast('var x = 1;'));
   assert(Array.isArray(withIssues.issues), 'Test 2 failed: issues should be an array');
   assert(withIssues.issues.length > 0, 'Test 2 failed: expected at least one issue');
   console.log('✓ Test 2 passed');
 
   console.log('Test 3: NAPI codemod apply_rule + scan_directory...');
-  const updated = applyRule('console.log(foo);', noConsoleRuleYaml());
-  assert(updated === 'logger.info(foo)', 'Test 3 failed: applyRule output mismatch');
+  const updated = apply_rule('console.log(foo);', noConsoleRuleYaml());
+  assert(updated === 'logger.info(foo)', 'Test 3 failed: apply_rule output mismatch');
 
   const scanDir = createTempDir('scan');
   const targetFile = path.join(scanDir, 'sample.ts');
   fs.writeFileSync(targetFile, 'console.log(bar);', 'utf8');
   try {
-    const result = JSON.parse(scanDirectory(scanDir, noConsoleRuleYaml(), false));
-    assert(Array.isArray(result), 'Test 3 failed: scanDirectory should return JSON array');
+    const result = JSON.parse(scan_directory(scanDir, noConsoleRuleYaml(), false));
+    assert(Array.isArray(result), 'Test 3 failed: scan_directory should return JSON array');
     assert(result.length === 1, 'Test 3 failed: expected one scanned file');
     assert(result[0].matches === 1, 'Test 3 failed: expected one match');
     const rewritten = fs.readFileSync(targetFile, 'utf8');
-    assert(rewritten === 'logger.info(bar)', 'Test 3 failed: file should be rewritten by scanDirectory');
+    assert(rewritten === 'logger.info(bar)', 'Test 3 failed: file should be rewritten by scan_directory');
   } finally {
     cleanupDir(scanDir);
   }
@@ -84,29 +84,29 @@ async function runMcpDirectChecks() {
 
   assert(Array.isArray(tools), 'Test 5 failed: tools should be an array');
   const toolNames = new Set(tools.map((tool) => tool.name));
-  assert(toolNames.has('findPattern'), 'Test 5 failed: findPattern tool missing');
-  assert(toolNames.has('applyRule'), 'Test 5 failed: applyRule tool missing');
-  assert(toolNames.has('scanDirectory'), 'Test 5 failed: scanDirectory tool missing');
+  assert(toolNames.has('find_pattern'), 'Test 5 failed: find_pattern tool missing');
+  assert(toolNames.has('apply_rule'), 'Test 5 failed: apply_rule tool missing');
+  assert(toolNames.has('scan_directory'), 'Test 5 failed: scan_directory tool missing');
 
-  const applyResult = await callTool('applyRule', {
+  const applyResult = await callTool('apply_rule', {
     source: 'console.log(value);',
     rule: noConsoleRuleYaml(),
   });
-  assert(applyResult === 'logger.info(value)', 'Test 5 failed: MCP applyRule result mismatch');
+  assert(applyResult === 'logger.info(value)', 'Test 5 failed: MCP apply_rule result mismatch');
 
   const scanDir = createTempDir('mcp-direct');
   const targetFile = path.join(scanDir, 'entry.ts');
   fs.writeFileSync(targetFile, 'console.log(data);', 'utf8');
   try {
-    const scanResultText = await callTool('scanDirectory', {
+    const scanResultText = await callTool('scan_directory', {
       rootPath: scanDir,
       rule: noConsoleRuleYaml(),
       dryRun: false,
     });
     const scanResult = JSON.parse(scanResultText);
-    assert(Array.isArray(scanResult), 'Test 5 failed: MCP scanDirectory should return JSON array');
-    assert(scanResult[0].matches === 1, 'Test 5 failed: MCP scanDirectory should find one match');
-    assert(fs.readFileSync(targetFile, 'utf8') === 'logger.info(data)', 'Test 5 failed: MCP scanDirectory should rewrite file');
+    assert(Array.isArray(scanResult), 'Test 5 failed: MCP scan_directory should return JSON array');
+    assert(scanResult[0].matches === 1, 'Test 5 failed: MCP scan_directory should find one match');
+    assert(fs.readFileSync(targetFile, 'utf8') === 'logger.info(data)', 'Test 5 failed: MCP scan_directory should rewrite file');
   } finally {
     cleanupDir(scanDir);
   }
@@ -133,34 +133,34 @@ async function runMcpStdioCommunicationChecks() {
   try {
     const listed = await client.listTools();
     const toolNames = new Set(listed.tools.map((tool) => tool.name));
-    assert(toolNames.has('applyRule'), 'Test 6 failed: stdio listTools missing applyRule');
-    assert(toolNames.has('scanDirectory'), 'Test 6 failed: stdio listTools missing scanDirectory');
+    assert(toolNames.has('apply_rule'), 'Test 6 failed: stdio listTools missing apply_rule');
+    assert(toolNames.has('scan_directory'), 'Test 6 failed: stdio listTools missing scan_directory');
 
     const applyResult = await client.callTool({
-      name: 'applyRule',
+      name: 'apply_rule',
       arguments: {
         source: 'console.log(viaMcp);',
         rule: noConsoleRuleYaml(),
       },
     });
-    const applyText = getTextContent(applyResult, 'Test 6 applyRule');
-    assert(applyText === 'logger.info(viaMcp)', 'Test 6 failed: stdio applyRule result mismatch');
+    const applyText = getTextContent(applyResult, 'Test 6 apply_rule');
+    assert(applyText === 'logger.info(viaMcp)', 'Test 6 failed: stdio apply_rule result mismatch');
 
     const scanResult = await client.callTool({
-      name: 'scanDirectory',
+      name: 'scan_directory',
       arguments: {
         rootPath: scanDir,
         rule: noConsoleRuleYaml(),
         dryRun: false,
       },
     });
-    const scanText = getTextContent(scanResult, 'Test 6 scanDirectory');
+    const scanText = getTextContent(scanResult, 'Test 6 scan_directory');
     const parsed = JSON.parse(scanText);
-    assert(Array.isArray(parsed), 'Test 6 failed: stdio scanDirectory should return JSON array');
-    assert(parsed[0].matches === 1, 'Test 6 failed: stdio scanDirectory should find one match');
+    assert(Array.isArray(parsed), 'Test 6 failed: stdio scan_directory should return JSON array');
+    assert(parsed[0].matches === 1, 'Test 6 failed: stdio scan_directory should find one match');
     assert(
       fs.readFileSync(targetFile, 'utf8') === 'logger.info(stdioValue)',
-      'Test 6 failed: stdio scanDirectory should rewrite file'
+      'Test 6 failed: stdio scan_directory should rewrite file'
     );
   } finally {
     cleanupDir(scanDir);

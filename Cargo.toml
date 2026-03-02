@@ -8,8 +8,8 @@ members = [
 
 [workspace.dependencies]
 ast_engine = { path = "./crates/ast_engine" }
-bindings = { path = "./packages/bindings", default-features = false, features = ["napi4"] }
-oxc = { version = "0", features = ["full"] }
+bindings = { path = "./packages/bindings", default-features = false, features = ["napi8", "dyn-symbols"] }
+oxc = { version = "0.115.0", features = ["full"] }
 
 [workspace.package]
 version = "0.1.0"

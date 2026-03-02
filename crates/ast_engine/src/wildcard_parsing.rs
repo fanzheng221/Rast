@@ -83,7 +83,10 @@ pub fn identify_meta_variables(root: &AstNode<'_>) -> HashMap<(u32, u32), Patter
     result
 }
 
-fn ast_node_to_pattern(node: AstNode<'_>, meta_variables: &HashMap<(u32, u32), PatternNodeKind>) -> PatternNode {
+fn ast_node_to_pattern(
+    node: AstNode<'_>,
+    meta_variables: &HashMap<(u32, u32), PatternNodeKind>,
+) -> PatternNode {
     let span = node.span();
     let key = (span.start, span.end);
     let kind = meta_variables

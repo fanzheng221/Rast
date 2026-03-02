@@ -5,17 +5,15 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "rast-bindings",
-    "triples": {
-      "defaults": true,
-      "additional": [
-        "aarch64-apple-darwin",
-        "x86_64-pc-windows-msvc",
-        "aarch64-pc-windows-msvc",
-        "x86_64-unknown-linux-gnu",
-        "aarch64-unknown-linux-gnu"
-      ]
-    }
+    "binaryName": "rast-bindings",
+    "targets": [
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-pc-windows-msvc",
+      "aarch64-pc-windows-msvc",
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu"
+    ]
   },
   "scripts": {
     "build": "napi build --platform --release",
@@ -23,9 +21,9 @@
     "test": "node test/index.mjs"
   },
   "dependencies": {
-    "@napi-rs/cli": "^2.18.4"
+    "@napi-rs/cli": "^3.5.1"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2"
+    "@types/node": "^25.3.2"
   }
 }

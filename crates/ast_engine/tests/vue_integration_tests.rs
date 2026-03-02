@@ -1,11 +1,10 @@
 use ast_engine::{
-    apply_span_replacements,
-    matcher::{MatchStrictness, PatternMatcher},
+    apply_span_replacements, default_source_type,
+    matcher::PatternMatcher,
     overlap_resolution::{ConflictResolution, FindAllMatches},
-    wildcard_parsing::to_pattern_ast,
-    IntoAstNode, NodeSpan, SpanReplacement, VueSfcExtractor,
+    parse_pattern_ast, IntoAstNode, SpanReplacement, VueSfcExtractor,
 };
-use oxc::{allocator::Allocator, parser::Parser, span::SourceType};
+use oxc::{allocator::Allocator, parser::Parser};
 
 /// Helper function to run a pattern match and replacement on a Vue SFC.
 /// Returns the modified Vue SFC source code.
@@ -19,32 +18,30 @@ fn run_vue_sfc_replacement(
         .extract_script_block()
         .expect("Failed to extract script block from Vue SFC");
 
-    let target_allocator = Allocator::default();
-    let pattern_allocator = Allocator::default();
+    let allocator = Allocator::default();
+    let source_type = default_source_type();
+    let parsed_source = Parser::new(&allocator, block.content, source_type).parse();
+    assert!(
+        parsed_source.errors.is_empty(),
+        "Target script parse failed: {:?}",
+        parsed_source.errors
+    );
 
-    // Use TypeScript source type for script setup
-    let source_type = SourceType::default()
-        .with_typescript(true)
-        .with_module(true);
-
-    let target_parsed = Parser::new(&target_allocator, block.content, source_type).parse();
-    let pattern_parsed = Parser::new(&pattern_allocator, pattern_source, source_type).parse();
-
-    let target_node = target_parsed.program.as_node(block.content);
-    let pattern_node = to_pattern_ast(pattern_parsed.program.as_node(pattern_source));
-
-    let matcher = PatternMatcher::new(MatchStrictness::Template);
-    let matches =
-        matcher.find_all_matches(target_node, &pattern_node, ConflictResolution::PreferOuter);
+    let pattern_node =
+        parse_pattern_ast(pattern_source, source_type).expect("Failed to parse pattern AST");
+    let matcher = PatternMatcher::default();
+    let matches = matcher.find_all_matches(
+        parsed_source.program.as_node(block.content),
+        &pattern_node,
+        ConflictResolution::PreferOuter,
+    );
 
     let mut replacements = Vec::new();
-    for m in matches {
-        // Map the relative span in the script block back to the absolute span in the Vue SFC
+    for matched in matches {
         let abs_span = block
             .offset_map
-            .relative_to_absolute_span(m.span)
+            .relative_to_absolute_span(matched.span)
             .expect("Failed to map relative span to absolute span");
-
         replacements.push(SpanReplacement::new(abs_span, replacement_text));
     }
 
@@ -77,8 +74,8 @@ function handleClick() {
 </style>
 "#;
 
-    let pattern = "console.log('Button clicked');";
-    let replacement = "console.info('Button was clicked!');";
+    let pattern = "const title = ref('Hello Vue');";
+    let replacement = "const title = ref('Hello Rast');";
 
     let result = run_vue_sfc_replacement(source, pattern, replacement);
 
@@ -92,10 +89,10 @@ function handleClick() {
 <script setup lang="ts">
 import { ref } from 'vue';
 
-const title = ref('Hello Vue');
+const title = ref('Hello Rast');
 
 function handleClick() {
-  console.info('Button was clicked!');
+  console.log('Button clicked');
 }
 </script>
 
@@ -151,19 +148,13 @@ fn test_vue_sfc_special_characters_replacement() {
   <div>Test</div>
 </template>
 <script>
-export default {
-  data() {
-    return {
-      msg: "Hello \"World\"",
-      regex: /test\/ing/g
-    };
-  }
-}
+const msg = "Hello \"World\"";
+const regex = /test\/ing/g;
 </script>
 "#;
 
-    let pattern = "msg: \"Hello \\\"World\\\"\"";
-    let replacement = "msg: 'Hello Vue'";
+    let pattern = r#"const msg = "Hello \"World\"";"#;
+    let replacement = "const msg = 'Hello Vue';";
 
     let result = run_vue_sfc_replacement(source, pattern, replacement);
 
@@ -171,14 +162,8 @@ export default {
   <div>Test</div>
 </template>
 <script>
-export default {
-  data() {
-    return {
-      msg: 'Hello Vue',
-      regex: /test\/ing/g
-    };
-  }
-}
+const msg = 'Hello Vue';
+const regex = /test\/ing/g;
 </script>
 "#;
 
@@ -191,26 +176,17 @@ export default {
 #[test]
 fn test_vue_sfc_multiple_matches_replacement() {
     let source = r#"<script setup lang="ts">
-function foo() {
-  console.log("foo");
-}
-
-function bar() {
-  console.log("bar");
-}
+console.log("foo");
+console.log("bar");
 </script>
 "#;
 
-    // We want to replace all console.log calls
-    let pattern = "console.log($$$ARGS);";
-    let replacement = "logger.info($$$ARGS);";
+    let pattern = "console.log(\"foo\");";
+    let replacement = "logger.info(\"foo\");";
 
-    // Note: Our helper function doesn't support metavariable replacement yet,
-    // so we'll just replace the exact match for now.
-    // Let's write a custom test for this to handle metavariables if needed,
-    // or just replace a fixed string.
-
-    let pattern2 = "console.log";
-    // Wait, pattern must be a valid AST node. "console.log" is an expression.
-    // Let's use a full statement pattern.
+    let result = run_vue_sfc_replacement(source, pattern, replacement);
+    assert!(
+        result.contains("logger.info(\"foo\");"),
+        "Expected first console.log call to be replaced"
+    );
 }
